@@ -1,5 +1,8 @@
 # Team 3
 
+## Objective
+The objective of the WALL-U project is to facilitate secure, non-contact payload delivery between two people with a remote controlled robot and an immersive user experience. 
+
 ## Software Organization
 ```
 core
