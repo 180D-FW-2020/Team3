@@ -23,4 +23,3 @@ class SerialInterface:
     def write_to_port(self, topic, message):
         msg_str = topic + ":" + message + ";"
         self.serial_fd.write(msg_str.encode())
-        
