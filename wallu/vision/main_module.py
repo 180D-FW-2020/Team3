@@ -5,7 +5,6 @@ from imutils.video import VideoStream
 import imagezmq
 import argparse
 
-#print("got here")
 ap = argparse.ArgumentParser()
 ap.add_argument("-s", "--server-ip", required=True,
                 help="ip address of the server to which the client will connect")
@@ -22,5 +21,3 @@ time.sleep(2.0)  # allow camera sensor to warm up
 while True:  # send images as stream until Ctrl-C
     image = picam.read()
     sender.send_image(rpi_name, image)
-    # if cv2.waitKey(1) & 0xFF == ord('q'):
-    #    break
