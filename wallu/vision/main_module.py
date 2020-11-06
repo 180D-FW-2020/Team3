@@ -13,7 +13,7 @@ args = vars(ap.parse_args())
 
 sender = imagezmq.ImageSender(connect_to="tcp://{}:5555".format(
     args["server_ip"]))
-#sender = imagezmq.ImageSender(connect_to='tcp://jeff-macbook:5555')
+
 
 rpi_name = socket.gethostname()  # send RPi hostname with each image
 picam = VideoStream(src=0).start()
