@@ -5,28 +5,26 @@ The objective of the WALL-U project is to facilitate secure, non-contact payload
 
 ## Software Organization
 ```
-core
-|__movement
-|  |__brushed_motor
-|  |__servo
-|__comms
-|  |__udp
-voice
-|__recognition
-|__command_parsing
-video
-|__processing
-|__streaming
-sensors
-|__hall
-|__imu
-|__range
+wallu
+|__wallu.ino
+|__main_module.py
+|__voice_recognition.py
+|__vision
+|  |__main_module.py
+|__core
+   |__motor
+   |  |__motor.**
+   |__sensing
+      |__sensor.hh
+
 controller
 |__main_module.py
+|__video_processing.py
+|__hud.py
 |__steering_wheel
-|__hud
-wallu
-|__main_module.py
-|__wallu.ino
-schematics
+   |__main_module.py
+
+comms
+|__mqtt
+|__pyserial
 ```
