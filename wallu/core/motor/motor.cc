@@ -1,4 +1,5 @@
 #include "motor.hh"
+#include "Arduino.h"
 #include <math.h>
 
 Motor::Motor(const int &enable_pin, const int &forward_pin, const int &backward_pin)
@@ -23,16 +24,19 @@ void Motor::set_throttle(int pwm_value, MotorDirection dir)
         m_pwm = 0;
         digitalWrite(m_pins.backward, LOW);
         digitalWrite(m_pins.forward, LOW);
+        break;
     }
     case FORWARD:
     {
         digitalWrite(m_pins.backward, LOW);
         digitalWrite(m_pins.forward, HIGH);
+        break;
     }
     case BACKWARD:
     {
         digitalWrite(m_pins.backward, HIGH);
         digitalWrite(m_pins.forward, LOW);
+        break;
     }
     }
 
