@@ -1,4 +1,5 @@
-#include "rpm.hh"
+#include "rpm.h"
+#include "Arduino.h"
 
 void RpmSensor::read_sensor()
 {
