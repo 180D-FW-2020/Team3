@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sensor.hh"
+#include "sensor.h"
 
 struct RotationalSpeed
 {

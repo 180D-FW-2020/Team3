@@ -1,4 +1,4 @@
-#include "rpm.hh"
+#include "rpm.h"
 
 void RpmSensor::read_sensor()
 {
