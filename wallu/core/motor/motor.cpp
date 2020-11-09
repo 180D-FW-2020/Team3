@@ -1,4 +1,4 @@
-#include "motor.hh"
+#include "motor.h"
 #include "Arduino.h"
 #include <math.h>
 
