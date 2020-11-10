@@ -1,35 +1,7 @@
 #include <motor.h>
-#include <ctype.h>
 //#include <rpm.h>
-
-// Pin Definitions
-#define BATTERY_MONITOR_PIN A0
-#define LEFT_RPM_PIN 12
-#define RIGHT_RPM_PIN 13
-#define MOTOR_R_PWM 3
-#define MOTOR_R_IN1 A3
-#define MOTOR_R_IN2 A4
-#define MOTOR_L_PWM 11
-#define MOTOR_L_IN1 A1
-#define MOTOR_L_IN2 A2
-#define LOCK_SERVO_PIN 9
-#define CAMERA_SERVO_PIN 5 
-#define LOCK_SENSOR_PIN 3
-#define RANGE_TRIG_PIN 6
-#define RANGE_ECHO_PIN 4
-#define RED_LED_EN_PIN A5
-#define GREEN_LED_EN_PIN A6
-#define BLUE_LED_EN_PIN A7
-#define RESERVED_1 D8
-#define RESERVED_2 D7
-#define RESERVED_3 D5
-// Hardware Constants
-#define VM 14.8
-#define BATT_MIN 11.0
-#define BATT_MAX 15.0
-#define BATTERY_R1 1000000
-#define BATTERY_R2 200000
-
+#include <ctype.h>
+#include "constants.h"
 // RPI Incoming Messages
 char com_buff[256];
 int com_buff_count;
@@ -64,7 +36,7 @@ byte lock_status = 0;    // 1 for locked, 0 for unlocked
 //Motor motor1 = Motor(9, 8, 7);
 
 void self_test() {
-  strcpy(com_buff, "MFM0");
+  strcpy(com_buff, "MF90M0");
   com_buff_count = 4;
   process_command();
   Serial.println(requested_dir);
@@ -72,11 +44,38 @@ void self_test() {
 }
 
 void process_movement(MotorDirection dir, int throttle, int angle) {
+  throttle = 255; // Temporary
   if (dir == BACKWARD) {
     //Run normally
+    left_motor.set_throttle(throttle, BACKWARD);
+    right_motor.set_throttle(throttle, BACKWARD);
   }
-  else { // if it's forward, we need to account for turning
-    
+  else if (dir == FORWARD) { // if it's forward, we need to account for turning
+    int percentage = map(abs(angle), 0, 90, 0, 100);
+    float reduction = 100.0 - (float)percentage;
+    int new_pwm = reduction / 100.0 * throttle;
+    if (angle < 0) {
+      // Reduce left motor speed to turn left
+      left_motor.set_throttle(new_pwm, FORWARD);
+      right_motor.set_throttle(throttle, FORWARD);
+    }
+    else if (angle > 0) {
+      // Reduce right motor speed to turn right
+      left_motor.set_throttle(throttle, FORWARD);
+      right_motor.set_throttle(new_pwm, FORWARD);
+    }
+    else {
+      // Go straight
+      left_motor.set_throttle(throttle, FORWARD);
+      right_motor.set_throttle(throttle, FORWARD);
+    }
+  }
+  else if (dir == STOP) {
+    left_motor.set_throttle(throttle, STOP);
+    right_motor.set_throttle(throttle, STOP);
+  }
+  else {
+    error_flag = 2;
   }
 }
 
