@@ -20,8 +20,8 @@
 #define GREEN_LED_EN_PIN A6
 #define BLUE_LED_EN_PIN A7
 #define RESERVED_1 D8
-#define RESERVED_1 D7
-#define RESERVED_1 D5
+#define RESERVED_2 D7
+#define RESERVED_3 D5
 // Hardware Constants
 #define VM 14.8
 #define BATTERY_R1 1000000
@@ -44,12 +44,13 @@ MotorDirection requested_dir;
 int requested_throttle = 0;
 
 byte servo_position = 0; // placeholder until servo library made
-byte lock_status = 0;    // 1 for locked, 0 for unlocked
+byte lock_hall = -1;
 
 // HUD
 int battery_level = -1;
 unsigned int rpm_right = -1;
 unsigned int rpm_left = -1;
+byte lock_status = 0;    // 1 for locked, 0 for unlocked
 
 //Motor motor1 = Motor(9, 8, 7);
 
@@ -86,14 +87,11 @@ void process_command() {
     }
     if (com_buff[2] == 'M') //max speed
       requested_throttle = 100;
-    else if (isDigit(com_buff[2]) && isDigit(com_buff[3])) {
+    else if (isDigit(com_buff[2]) && isDigit(com_buff[3]))
       requested_throttle = atoi(com_buff+2);
-    }
     else
       error_flag = 1;
-      
   }
-  //command stored in 256 byte buffer => can implement multi-char commands too
 }
 
 void check_for_command() {
@@ -117,11 +115,23 @@ void check_for_command() {
 void setup() {
   // Initialization of all Arduino pins
   pinMode(BATTERY_MONITOR_PIN, INPUT);
-  pinMode(9, OUTPUT);
-  pinMode(8, OUTPUT);
-  pinMode(7,OUTPUT);
+  pinMode(LEFT_RPM_PIN, INPUT);
+  pinMode(RIGHT_RPM_PIN, INPUT);
+  pinMode(MOTOR_R_PWM, OUTPUT);
+  pinMode(MOTOR_R_IN1, OUTPUT);
+  pinMode(MOTOR_R_IN2, OUTPUT);
+  pinMode(MOTOR_R_PWM, OUTPUT);
+  pinMode(MOTOR_L_IN1, OUTPUT);
+  pinMode(MOTOR_L_IN2, OUTPUT);
+  pinMode(LOCK_SERVO_PIN, OUTPUT);
+  pinMode(CAMERA_SERVO_PIN, OUTPUT);
+  pinMode(LOCK_SENSOR_PIN, INPUT);
+  pinMode(RANGE_TRIG_PIN, INPUT); // need to double check
+  pinMode(RANGE_ECHO_PIN, INPUT);
+  pinMode(RED_LED_EN_PIN, OUTPUT);
+  pinMode(GREEN_LED_EN_PIN, OUTPUT);
+  pinMode(BLUE_LED_EN_PIN, OUTPUT);
   Serial.begin(9600);
-
 }
 
 void loop() {
