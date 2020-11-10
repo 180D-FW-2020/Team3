@@ -24,6 +24,8 @@
 #define RESERVED_3 D5
 // Hardware Constants
 #define VM 14.8
+#define BATT_MIN 11.0
+#define BATT_MAX 15.0
 #define BATTERY_R1 1000000
 #define BATTERY_R2 200000
 
@@ -35,6 +37,9 @@ int com_buff_count;
 byte error_flag = 0; // 0 for invalid motor message, 1 for etc. etc, need to document this.
 bool stationary = true;
 bool direction_change = false;
+
+bool motor_request = false;
+bool camera_servo_request = false;
 
 // WALL-U
 Motor left_motor = Motor(11, A1, A2);
@@ -62,16 +67,18 @@ void self_test() {
   Serial.println(requested_throttle);
 }
 
-float calculate_battery(int read_in) {
+int calculate_battery(int read_in) {
   // Vout = Vs x R2 / R1 + R2
   // Vout * (R1 + R2) / R2 = Vs
-  float voltage = analogRead(BATTERY_MONITOR_PIN);
-  voltage = map(voltage, 0, 1023, 0, 5);
-  return (voltage * (BATTERY_R1 + BATTERY_R2) / BATTERY_R1) / VM;
+  float val = analogRead(read_in);
+  float input_voltage = val / 1023.0 * 5.0;
+  float raw_voltage = (input_voltage * (BATTERY_R1 + BATTERY_R2) / BATTERY_R2);
+  if (raw_voltage < BATT_MIN)
+    return 0;
+  return 100.0 * (raw_voltage - BATT_MIN) / (BATT_MAX - BATT_MIN);
 }
 
 void process_command() {
-  
   if (com_buff_count == 1) {
     ;
   }
@@ -110,8 +117,7 @@ void check_for_command() {
     }
   }
 }
-
-//void process_movement(bool stationary, 
+ 
 void setup() {
   // Initialization of all Arduino pins
   pinMode(BATTERY_MONITOR_PIN, INPUT);
@@ -132,9 +138,11 @@ void setup() {
   pinMode(GREEN_LED_EN_PIN, OUTPUT);
   pinMode(BLUE_LED_EN_PIN, OUTPUT);
   Serial.begin(9600);
+  self_test();
 }
 
 void loop() {
   check_for_command();
-  self_test();
+  // update WALLU status
+  battery_level = calculate_battery(BATTERY_MONITOR_PIN);
 }
