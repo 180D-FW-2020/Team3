@@ -1,5 +1,6 @@
 #include <motor.h>
 #include <ctype.h>
+//#include <rpm.h>
 
 // Pin Definitions
 #define BATTERY_MONITOR_PIN A0
@@ -29,9 +30,10 @@
 #define BATTERY_R1 1000000
 #define BATTERY_R2 200000
 
-// Serial buffer
+// RPI Incoming Messages
 char com_buff[256];
 int com_buff_count;
+
 
 // Flags
 byte error_flag = 0; // 0 for invalid motor message, 1 for etc. etc, need to document this.
@@ -45,6 +47,8 @@ bool cam_servo_request = false;
 Motor left_motor = Motor(MOTOR_L_PWM, MOTOR_L_IN1, MOTOR_L_IN2);
 Motor right_motor = Motor(MOTOR_R_PWM, MOTOR_R_IN1, MOTOR_R_IN2);
 MotorDirection current_dir = FORWARD;
+int steering_angle = 0;
+int requested_steering_angle = -1;
 MotorDirection requested_dir;
 int requested_throttle = 0;
 
@@ -67,8 +71,13 @@ void self_test() {
   Serial.println(requested_throttle);
 }
 
-void process_movement(MotorDirection requested_dir, int throttle) {
-  ;
+void process_movement(MotorDirection dir, int throttle, int angle) {
+  if (dir == BACKWARD) {
+    //Run normally
+  }
+  else { // if it's forward, we need to account for turning
+    
+  }
 }
 
 int calculate_battery(int read_in) {
@@ -83,23 +92,37 @@ int calculate_battery(int read_in) {
 }
 
 void process_command() {
+  char atoi_buff[2];
   if (com_buff_count == 1) {
     ;
   }
-  // Motor Commands
+  // Servo commands S_ _ _ (angle)
   if (com_buff_count == 4) {
+    ;
+  }
+  // Motor Commands
+  if (com_buff_count == 6) {
     if (com_buff[0] == 'M') {
       if (com_buff[1] == 'F')
         requested_dir = FORWARD;
       else if (com_buff[1] == 'B')
         requested_dir = BACKWARD;
+      else if (com_buff[1] == 'S')
+        requested_dir = STOP;
       else
         error_flag = 1; 
     }
-    if (com_buff[2] == 'M') //max speed
+    if (isDigit(com_buff[2]) && isDigit(com_buff[3])) {
+      atoi_buff[0] = com_buff[2];
+      atoi_buff[1] = com_buff[3];
+      requested_steering_angle = atoi(atoi_buff);
+    }
+    else
+      error_flag = 1;
+    if (com_buff[4] == 'M') //max speed
       requested_throttle = 100;
-    else if (isDigit(com_buff[2]) && isDigit(com_buff[3]))
-      requested_throttle = atoi(com_buff+2);
+    else if (isDigit(com_buff[4]) && isDigit(com_buff[5]))
+      requested_throttle = atoi(com_buff+4);
     else
       error_flag = 1;
   }
@@ -152,15 +175,15 @@ void loop() {
   // Handle motor requests
   if (motor_request) {
     if (requested_dir == STOP)
-      process_movement(requested_dir, requested_throttle);
+      process_movement(requested_dir, requested_throttle, requested_steering_angle);
     else if (requested_dir != current_dir) {
       if (stationary)
-        process_movement(requested_dir, requested_throttle);
+        process_movement(requested_dir, requested_throttle, requested_steering_angle);
       else
-        process_movement(STOP, requested_throttle);
+        process_movement(STOP, requested_throttle, requested_steering_angle);
     }
     else
-      process_movement(requested_dir, requested_throttle);
+      process_movement(requested_dir, requested_throttle, requested_steering_angle);
     motor_request= 0;
   }
 
