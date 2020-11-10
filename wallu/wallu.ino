@@ -39,11 +39,11 @@ bool stationary = true;
 bool direction_change = false;
 
 bool motor_request = false;
-bool camera_servo_request = false;
+bool cam_servo_request = false;
 
 // WALL-U
-Motor left_motor = Motor(11, A1, A2);
-Motor right_motor = Motor(3, A3, A4);
+Motor left_motor = Motor(MOTOR_L_PWM, MOTOR_L_IN1, MOTOR_L_IN2);
+Motor right_motor = Motor(MOTOR_R_PWM, MOTOR_R_IN1, MOTOR_R_IN2);
 MotorDirection current_dir = FORWARD;
 MotorDirection requested_dir;
 int requested_throttle = 0;
@@ -65,6 +65,10 @@ void self_test() {
   process_command();
   Serial.println(requested_dir);
   Serial.println(requested_throttle);
+}
+
+void process_movement(MotorDirection requested_dir, int throttle) {
+  ;
 }
 
 int calculate_battery(int read_in) {
@@ -142,7 +146,34 @@ void setup() {
 }
 
 void loop() {
+  // Read in Serial messages from Pi
   check_for_command();
-  // update WALLU status
+
+  // Handle motor requests
+  if (motor_request) {
+    if (requested_dir == STOP)
+      process_movement(requested_dir, requested_throttle);
+    else if (requested_dir != current_dir) {
+      if (stationary)
+        process_movement(requested_dir, requested_throttle);
+      else
+        process_movement(STOP, requested_throttle);
+    }
+    else
+      process_movement(requested_dir, requested_throttle);
+    motor_request= 0;
+  }
+
+  // Handle servo requests
+  if (cam_servo_request) {
+    ;
+  }
+  // update WALL-U HUD status
   battery_level = calculate_battery(BATTERY_MONITOR_PIN);
+  // Read in RPM sensors, then do this
+  if (rpm_right == 0 && rpm_left == 0)
+    stationary = 0;
+  // Lock status
+
+  //
 }
