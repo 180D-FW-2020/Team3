@@ -31,8 +31,8 @@ byte lock_hall = -1;
 
 // HUD
 int battery_level = -1;
-unsigned int rpm_right = -1;
-unsigned int rpm_left = -1;
+unsigned int rpm_right = 0;
+unsigned int rpm_left = 0;
 byte lock_status = 0;    // 1 for locked, 0 for unlocked
 
 //Motor motor1 = Motor(9, 8, 7);
@@ -45,7 +45,9 @@ void print_all() {
   Serial.print("D"); Serial.print(current_dir);
   Serial.print("B"); Serial.print(battery_level);
   Serial.print("R"); Serial.print(rpm_right);
-  Serial.print("L"); Serial.println(rpm_right);
+  Serial.print("L"); Serial.print(rpm_right);
+  Serial.print("S"); Serial.print(stationary);
+  Serial.print("T"); Serial.println(lock_status);
 }
 void self_test() {
   /*
@@ -121,7 +123,7 @@ void process_command() {
     ;
   }
   // Motor Commands
-  else if (com_buff_count == 6) {
+  else if (com_buff_count == 7) {
     if (com_buff[0] == 'M') {
       if (com_buff[1] == 'F')
         requested_dir = FORWARD;
@@ -132,17 +134,24 @@ void process_command() {
       else
         error_flag = 1; 
     }
-    if (isDigit(com_buff[2]) && isDigit(com_buff[3])) {
-      atoi_buff[0] = com_buff[2];
-      atoi_buff[1] = com_buff[3];
-      requested_steering_angle = atoi(atoi_buff);
+    int multiplier = 1;
+    if (com_buff[2] == 'N') // NEGATIVE
+      multiplier = -1;
+    else if (com_buff[2] == 'P') // POSITIVE
+      multiplier = 1;
+    else
+      error_flag = 1;
+    if (isDigit(com_buff[3]) && isDigit(com_buff[4])) {
+      atoi_buff[0] = com_buff[3];
+      atoi_buff[1] = com_buff[4];
+      requested_steering_angle = atoi(atoi_buff) * multiplier;
     }
     else
       error_flag = 1;
-    if (com_buff[4] == 'M') //max speed
+    if (com_buff[5] == 'M') //max speed
       requested_throttle = 100;
-    else if (isDigit(com_buff[4]) && isDigit(com_buff[5]))
-      requested_throttle = atoi(com_buff+4);
+    else if (isDigit(com_buff[5]) && isDigit(com_buff[6]))
+      requested_throttle = atoi(com_buff+5);
     else
       error_flag = 1;
     Serial.print(requested_throttle);
