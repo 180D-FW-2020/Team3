@@ -42,3 +42,8 @@ void Motor::set_throttle(int pwm_value, MotorDirection dir)
 
     analogWrite(m_pins.pwm, m_pwm);
 }
+
+int Motor::get_pwm()
+{
+	return m_pwm;
+}

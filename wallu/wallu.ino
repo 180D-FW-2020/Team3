@@ -4,7 +4,7 @@
 #include "constants.h"
 // RPI Incoming Messages
 char com_buff[256];
-int com_buff_count;
+int com_buff_count = 0;
 
 
 // Flags
@@ -14,6 +14,7 @@ bool direction_change = false;
 
 bool motor_request = false;
 bool cam_servo_request = false;
+bool unlock_request = false;
 
 // WALL-U
 Motor left_motor = Motor(MOTOR_L_PWM, MOTOR_L_IN1, MOTOR_L_IN2);
@@ -23,6 +24,7 @@ int steering_angle = 0;
 int requested_steering_angle = -1;
 MotorDirection requested_dir;
 int requested_throttle = 0;
+int current_throttle = 0;
 
 byte servo_position = 0; // placeholder until servo library made
 byte lock_hall = -1;
@@ -35,16 +37,29 @@ byte lock_status = 0;    // 1 for locked, 0 for unlocked
 
 //Motor motor1 = Motor(9, 8, 7);
 
+void print_all() {
+  Serial.print("T"); Serial.print(current_throttle);
+  Serial.print("M"); Serial.print(left_motor.get_pwm());
+  Serial.print("M"); Serial.print(right_motor.get_pwm());
+  Serial.print("A"); Serial.print(steering_angle);
+  Serial.print("D"); Serial.print(current_dir);
+  Serial.print("B"); Serial.print(battery_level);
+  Serial.print("R"); Serial.print(rpm_right);
+  Serial.print("L"); Serial.println(rpm_right);
+}
 void self_test() {
+  /*
   strcpy(com_buff, "MF90M0");
   com_buff_count = 4;
   process_command();
-  Serial.println(requested_dir);
-  Serial.println(requested_throttle);
+  memset(com_buff, 0, sizeof(com_buff));
+  com_buff_count = 0;
+  */;
 }
 
-void process_movement(MotorDirection dir, int throttle, int angle) {
-  throttle = 255; // Temporary
+void process_movement(MotorDirection dir, int throttle_percent, int angle) {
+  int throttle = map(throttle_percent, 0, 100, 0, 255);
+  throttle = 255; // Temporary addition for testing
   if (dir == BACKWARD) {
     //Run normally
     left_motor.set_throttle(throttle, BACKWARD);
@@ -77,6 +92,9 @@ void process_movement(MotorDirection dir, int throttle, int angle) {
   else {
     error_flag = 2;
   }
+  current_throttle = throttle_percent;
+  steering_angle = angle;
+  current_dir = dir;
 }
 
 int calculate_battery(int read_in) {
@@ -93,14 +111,17 @@ int calculate_battery(int read_in) {
 void process_command() {
   char atoi_buff[2];
   if (com_buff_count == 1) {
-    ;
+    if (com_buff[0] == 'P') // print all data
+      print_all();
+    if (com_buff[0] == 'U') // unlock
+      unlock_request = 1;
   }
   // Servo commands S_ _ _ (angle)
-  if (com_buff_count == 4) {
+  else if (com_buff_count == 4) {
     ;
   }
   // Motor Commands
-  if (com_buff_count == 6) {
+  else if (com_buff_count == 6) {
     if (com_buff[0] == 'M') {
       if (com_buff[1] == 'F')
         requested_dir = FORWARD;
@@ -124,6 +145,11 @@ void process_command() {
       requested_throttle = atoi(com_buff+4);
     else
       error_flag = 1;
+    Serial.print(requested_throttle);
+    Serial.print(" ");
+    Serial.println(requested_steering_angle);
+    if (error_flag != 1)
+      motor_request = 1;
   }
 }
 
@@ -181,8 +207,9 @@ void loop() {
       else
         process_movement(STOP, requested_throttle, requested_steering_angle);
     }
-    else
+    else {
       process_movement(requested_dir, requested_throttle, requested_steering_angle);
+    }
     motor_request= 0;
   }
 
@@ -196,6 +223,12 @@ void loop() {
   if (rpm_right == 0 && rpm_left == 0)
     stationary = 0;
   // Lock status
-
-  //
+  if (unlock_request) {
+    if (!lock_status) // already unlocked
+      ;
+    else if (stationary) { // locked and stationary
+      // unlock process here
+      Serial.println("U1");
+    }
+  }
 }
