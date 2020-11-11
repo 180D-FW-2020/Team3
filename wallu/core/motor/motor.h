@@ -20,6 +20,7 @@ public:
     Motor(const int &enable_pin, const int &forward_pin, const int &backward_pin);
     void set_throttle(int pwm_value, MotorDirection dir);
     int get_rpm();
+    int get_pwm();
 
 private:
     MotorDriverPinSet m_pins{};
