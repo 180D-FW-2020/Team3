@@ -89,4 +89,3 @@ class MqttInterface:
             print("Connected to " + str(target))
             self.connected_targets.append(target)
 
-        
