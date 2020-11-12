@@ -422,22 +422,29 @@ while True:
     ##################### END Tilt Compensation ########################
     if (calibrating == 1):
         calibration_start = time.time()
-        steady_gyroZangle = gyroZangle
+        #steady_gyroZangle = gyroZangle
+        steady_gyroZangle = kalmanX
         steady_upperbound = steady_gyroZangle + 2.5
         steady_lowerbound = steady_gyroZangle - 2.5
         calibrating = 2 # go to calibrating state 2
     elif (calibrating == 0):
-        if(gyroZangle  < right_upperbound):
+        #if(gyroZangle  < right_upperbound):
+        if (kalmanX < right_upperbound):
             print("Turning completely right")
-        elif (gyroZangle < veryright_upperbound):
+            #elif (gyroZangle < veryright_upperbound):
+        elif(kalmanX < veryright_upperbound):
             print("Turning mostly right")
-        elif (gyroZangle < slightlyright_upperbound):
+            #elif (gyroZangle < slightlyright_upperbound):
+        elif (kalmanX < slightlyright_upperbound) :
             print("Turning slightly right")
-        elif (gyroZangle < straight_upperbound):
+            #elif (gyroZangle < straight_upperbound):
+        elif (kalmanX < straight_upperbound):
             print("Going straight")
-        elif (gyroZangle < slightlyleft_upperbound):
+            #elif (gyroZangle < slightlyleft_upperbound):
+        elif (kalmanX < slightlyleft_upperbound):
             print("Turning slightly left")
-        elif (gyroZangle < veryleft_upperbound):
+            #elif (gyroZangle < veryleft_upperbound):
+        elif(kalmanX < veryleft_upperbound):
             print("Turning mostly left")
         else:
             print("Turning completely left")
@@ -447,9 +454,10 @@ while True:
     else:
         print("Hold the IMU steady")
         if ((time.time()-calibration_start)<=2):
-            if (gyroZangle > steady_upperbound):
+            #if (gyroZangle > steady_upperbound):
+            if (kalmanX > steady_upperbound):
                 calibrating = 1 # go back to calibrating state 1
-            elif (gyroZangle < steady_lowerbound):
+            elif (kalmanX < steady_lowerbound):
                 calibrating = 1
         else: # we have our steady state value
             # eg if steady_gyroZangle is 0, then the values are
@@ -477,7 +485,7 @@ while True:
     if 1:                       #Change to '0' to stop  showing the heading
         outputString +="\t# HEADING %5.2f  tiltCompensatedHeading %5.2f #" % (heading,tiltCompensatedHeading)
 
-    if 0:                       #Change to '0' to stop  showing the angles from the Kalman filter
+    if 1:                       #Change to '0' to stop  showing the angles from the Kalman filter
         outputString +="# kalmanX %5.2f   kalmanY %5.2f #" % (kalmanX,kalmanY)
 
     print(outputString)

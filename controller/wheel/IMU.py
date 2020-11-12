@@ -1,7 +1,7 @@
 import smbus2 as smbus
 bus = smbus.SMBus(1)
-from LSM9DS0 import *
-from LSM9DS1 import *
+#from LSM9DS0 import *
+#from LSM9DS1 import *
 from LSM6DSL import *
 from LIS3MDL import *
 import time
@@ -23,35 +23,8 @@ def detectIMU():
  
     global BerryIMUversion
 
-
-    try:
-        #Check for BerryIMUv1 (LSM9DS0)
-        #If no LSM9DS0 is connected, there will be an I2C bus error and the program will exit.
-        #This section of code stops this from happening.
-        LSM9DS0_WHO_G_response = (bus.read_byte_data(LSM9DS0_GYR_ADDRESS, LSM9DS0_WHO_AM_I_G))
-        LSM9DS0_WHO_XM_response = (bus.read_byte_data(LSM9DS0_ACC_ADDRESS, LSM9DS0_WHO_AM_I_XM))
-    except IOError as e:
-        print('')        #need to do something here, so we just print a space
-    else:
-        if (LSM9DS0_WHO_G_response == 0xd4) and (LSM9DS0_WHO_XM_response == 0x49):
-            print("Found BerryIMUv1 (LSM9DS0)")
-            BerryIMUversion = 1
-
-
-    try:
-        #Check for BerryIMUv2 (LSM9DS1)
-        #If no LSM9DS1 is connnected, there will be an I2C bus error and the program will exit.
-        #This section of code stops this from happening.
-        LSM9DS1_WHO_XG_response = (bus.read_byte_data(LSM9DS1_GYR_ADDRESS, LSM9DS1_WHO_AM_I_XG))
-        LSM9DS1_WHO_M_response = (bus.read_byte_data(LSM9DS1_MAG_ADDRESS, LSM9DS1_WHO_AM_I_M))
-
-    except IOError as f:
-        print('')        #need to do something here, so we just print a space
-    else:
-        if (LSM9DS1_WHO_XG_response == 0x68) and (LSM9DS1_WHO_M_response == 0x3d):
-            print("Found BerryIMUv2 (LSM9DS1)")
-            BerryIMUversion = 2
-
+    '''
+    '''
     try:
         #Check for BerryIMUv3 (LSM6DSL and LIS3MDL)
         #If no LSM6DSL or LIS3MDL is connected, there will be an I2C bus error and the program will exit.
@@ -66,14 +39,6 @@ def detectIMU():
             print("Found BerryIMUv3 (LSM6DSL and LIS3MDL)")
             BerryIMUversion = 3
     time.sleep(1)
-
-
-
-
-
-
-
-
 
 
 
