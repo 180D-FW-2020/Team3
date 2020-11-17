@@ -1,5 +1,11 @@
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import cv2
 import imagezmq
+from comms.mqtt import interface as mqtt_interface
+import time
 
 
 class Coord:
@@ -88,6 +94,27 @@ def add_text_overlays(image, hud):
                  (battery_offset.x, battery_offset.y+280))
     overlay_text(image, "- Payload Compartment: " + hud.payload, 1.5,
                  (battery_offset.x, battery_offset.y+320))
+
+def mqtt_callback(client, userdata, message):
+    # Print all messages
+    payload = message.payload.decode("utf-8")
+    topic = message.topic
+    mqtt_manager.pulse_check(topic, payload)
+
+    '''
+    print('Received message: "' + payload +
+          '" on topic "' + topic + '" with QoS ' + str(message.qos))
+    '''
+
+
+mqtt_id = "laptop"
+mqtt_targets = ["vision"]
+mqtt_topics = []
+mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
+mqtt_manager.start_reading()
+
+while not mqtt_manager.handshake("vision"):
+    time.sleep(0.5)
 
 
 image_hub = imagezmq.ImageHub()
