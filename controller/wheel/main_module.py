@@ -5,16 +5,6 @@
 #
 #    This program includes two filters (low pass and median) to improve the
 #    values returned from BerryIMU by reducing noise.
-#
-#    The BerryIMUv1, BerryIMUv2 and BerryIMUv3 are supported
-#
-#    This script is python 2.7 and 3 compatible
-#
-#    Feel free to do whatever you like with this code.
-#    Distributed as-is; no warranty is given.
-#
-#    http://ozzmaker.com/
-
 
 
 import sys
@@ -36,19 +26,10 @@ ACC_MEDIANTABLESIZE = 9         # Median filter table size for accelerometer. Hi
 MAG_MEDIANTABLESIZE = 9         # Median filter table size for magnetometer. Higher = smoother but a longer delay
 
 
-
 ################# Compass Calibration values ############
 # Use calibrateBerryIMU.py to get calibration values
 # Calibrating the compass isnt mandatory, however a calibrated
 # compass will result in a more accurate heading value.
-'''
-magXmin =  0
-magYmin =  0
-magZmin =  0
-magXmax =  0
-magYmax =  0
-magZmax =  0
-'''
 
 magXmin = -1329
 magYmin = -2538
@@ -57,16 +38,6 @@ magXmax = 1576
 magYmax = 121
 magZmax = 1931
 
-'''
-Here is an example:
-magXmin =  -1748
-magYmin =  -1025
-magZmin =  -1876
-magXmax =  959
-magYmax =  1651
-magZmax =  708
-Dont use the above values, these are just an example.
-'''
 ############### END Calibration offsets #################
 
 ### Boundaries for steering wheel tilt (default values) ###
@@ -92,10 +63,6 @@ pressed = True
 GPIO.setwarnings(False)
 GPIO.setmode(GPIO.BOARD)
 GPIO.setup(10, GPIO.IN)
-
-def SteeringWheelCalibration():
-    print("Hold the IMU steady")
-    wait(5)
     
 
 #Kalman filter variables
@@ -209,7 +176,7 @@ a = datetime.datetime.now()
 
 
 
-#Setup the tables for the mdeian filter. Fill them all with '1' so we dont get devide by zero error
+#Setup the tables for the median filter. Fill them all with '1' so we dont get devide by zero error
 acc_medianTable1X = [1] * ACC_MEDIANTABLESIZE
 acc_medianTable1Y = [1] * ACC_MEDIANTABLESIZE
 acc_medianTable1Z = [1] * ACC_MEDIANTABLESIZE
@@ -256,8 +223,7 @@ while True:
     b = datetime.datetime.now() - a
     a = datetime.datetime.now()
     LP = b.microseconds/(1000000*1.0)
-    outputString = "Loop Time %5.2f " % ( LP )
-
+    outputString = ""
 
 
     ###############################################
@@ -399,16 +365,11 @@ while True:
     #X compensation
     if(IMU.BerryIMUversion == 1 or IMU.BerryIMUversion == 3):            #LSM9DS0 and (LSM6DSL & LIS2MDL)
         magXcomp = MAGx*math.cos(pitch)+MAGz*math.sin(pitch)
-    else:                                                                #LSM9DS1
-        magXcomp = MAGx*math.cos(pitch)-MAGz*math.sin(pitch)
+        
 
     #Y compensation
     if(IMU.BerryIMUversion == 1 or IMU.BerryIMUversion == 3):            #LSM9DS0 and (LSM6DSL & LIS2MDL)
         magYcomp = MAGx*math.sin(roll)*math.sin(pitch)+MAGy*math.cos(roll)-MAGz*math.sin(roll)*math.cos(pitch)
-    else:                                                                #LSM9DS1
-        magYcomp = MAGx*math.sin(roll)*math.sin(pitch)+MAGy*math.cos(roll)+MAGz*math.sin(roll)*math.cos(pitch)
-
-
 
 
 
@@ -422,10 +383,9 @@ while True:
     ##################### END Tilt Compensation ########################
     if (calibrating == 1):
         calibration_start = time.time()
-        #steady_gyroZangle = gyroZangle
-        steady_gyroZangle = kalmanX
-        steady_upperbound = steady_gyroZangle + 2.5
-        steady_lowerbound = steady_gyroZangle - 2.5
+        steady_accelXangle = kalmanX
+        steady_upperbound = steady_accelXangle + 2.5
+        steady_lowerbound = steady_accelXangle - 2.5
         calibrating = 2 # go to calibrating state 2
     elif (calibrating == 0):
         #if(gyroZangle  < right_upperbound):
@@ -461,34 +421,16 @@ while True:
                 calibrating = 1
         else: # we have our steady state value
             # eg if steady_gyroZangle is 0, then the values are
-            slightlylright_upperbound = steady_gyroZangle - 10 # -10
+            slightlylright_upperbound = steady_accelXangle - 10 # -10
             veryright_upperbound = slightlyright_upperbound - 30 # -40
             right_upperbound = veryright_upperbound - 30 # -70
             
             #straight_upperbound = slightlyleft_upperbound + 20
-            straight_upperbound = steady_gyroZangle + 10 # 10
+            straight_upperbound = steady_accelXangle + 10 # 10
             slightlyleft_upperbound = straight_upperbound + 30 # 40
             veryleft_upperbound = slightlyleft_upperbound + 30 # 70
             calibrating = 0
-    #if (calibration_button == pressed): #pressed = True
-        #reinitialize the IMU
-
-    if 0:                       #Change to '0' to stop showing the angles from the accelerometer
-        outputString += "#  ACCX Angle %5.2f ACCY Angle %5.2f  #  " % (AccXangle, AccYangle)
-
-    if 1:                       #Change to '0' to stop  showing the angles from the gyro
-        outputString +="\t# GRYX Angle %5.2f  GYRY Angle %5.2f  GYRZ Angle %5.2f # " % (gyroXangle,gyroYangle,gyroZangle)
-
-    if 1:                       #Change to '0' to stop  showing the angles from the complementary filter
-        outputString +="\t#  CFangleX Angle %5.2f   CFangleY Angle %5.2f  #" % (CFangleX,CFangleY)
-
-    if 1:                       #Change to '0' to stop  showing the heading
-        outputString +="\t# HEADING %5.2f  tiltCompensatedHeading %5.2f #" % (heading,tiltCompensatedHeading)
-
-    if 1:                       #Change to '0' to stop  showing the angles from the Kalman filter
-        outputString +="# kalmanX %5.2f   kalmanY %5.2f #" % (kalmanX,kalmanY)
-
-    print(outputString)
+    
 
     #slow program down a bit, makes the output more readable
     time.sleep(0.03)

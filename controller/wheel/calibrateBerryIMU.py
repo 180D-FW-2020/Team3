@@ -10,11 +10,6 @@
 #   The BerryIMUv1, BerryIMUv2 and BerryIMUv3 are supported
 #
 #   This script is python 2.7 and 3 compatible
-#
-#   Feel free to do whatever you like with this code.
-#   Distributed as-is; no warranty is given.
-#
-#   http://ozzmaker.com/
 
 
 import sys,signal,os
