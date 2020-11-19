@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 import cv2
 import imagezmq
 from comms.mqtt import interface as mqtt_interface
+from comms.proto import motor_requests_pb2
 import time
 
 
@@ -97,9 +98,9 @@ def add_text_overlays(image, hud):
 
 def mqtt_callback(client, userdata, message):
     # Print all messages
-    payload = message.payload.decode("utf-8")
+    payload = message.payload
     topic = message.topic
-    mqtt_manager.pulse_check(topic, payload)
+    mqtt_manager.pulse_check(topic, payload.decode("utf-8"))
 
     '''
     print('Received message: "' + payload +
@@ -108,11 +109,23 @@ def mqtt_callback(client, userdata, message):
 
 
 mqtt_id = "laptop"
-mqtt_targets = ["vision"]
+mqtt_targets = ["vision", "wallu", "wheel"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
+# First connect to Wheel Main Pi
+print("Opening connection to Steering Wheel Main...")
+while not mqtt_manager.handshake("wheel"):
+    time.sleep(0.5)
+
+# Then connect to WALL-U Main Pi
+print("Opening connection to WALL-U Main...")
+while not mqtt_manager.handshake("wallu"):
+    time.sleep(0.5)
+
+# Then connect to WALL-U Vision Pi
+print("Opening connection to WALL-U Vision...")
 while not mqtt_manager.handshake("vision"):
     time.sleep(0.5)
 
