@@ -10,7 +10,7 @@
 import sys
 import time
 import math
-import IMU
+import BerryIMU.IMU as IMU
 import datetime
 import os
 import RPi.GPIO as GPIO
