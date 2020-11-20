@@ -65,7 +65,7 @@ def mqtt_callback(client, userdata, message):
     '''
 
 # PySerial setup
-serial_interface = SerialInterface("/dev/ttyACM0")
+serial_interface = SerialInterface("/dev/ttyUSB0")
 
 # MQTT setup
 mqtt_id = "wallu"
