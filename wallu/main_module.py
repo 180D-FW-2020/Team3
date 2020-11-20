@@ -75,7 +75,7 @@ serial_interface = SerialInterface("/dev/ttyUSB0")
 # MQTT setup
 mqtt_id = "wallu"
 mqtt_targets = ["laptop"]
-mqtt_topics = ["motor_requests"]
+mqtt_topics = ["motor_requests", "storage_control"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
