@@ -51,7 +51,7 @@ print("Opening connection to Controller Main...")
 while not mqtt_manager.handshake("laptop"):
     time.sleep(0.5)
 
-serial_interface = SerialInterface("/dev/tty.usbmodem14101")
+serial_interface = SerialInterface("/dev/tty.usbmodem144301")
 thread = threading.Thread(target=serial_interface.read_from_port)
 thread.start()
 
