@@ -4,9 +4,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import cv2
 import imagezmq
+import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.proto import motor_requests_pb2
 import time
+import threading
 
 
 class Coord:
@@ -107,6 +109,9 @@ def mqtt_callback(client, userdata, message):
           '" on topic "' + topic + '" with QoS ' + str(message.qos))
     '''
 
+def voice_callback():
+    print("Sending unlock command")
+    mqtt_manager.send_message("storage_control", "unlock")
 
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "wheel"]
@@ -123,6 +128,10 @@ while not mqtt_manager.handshake("wheel"):
 print("Opening connection to WALL-U Main...")
 while not mqtt_manager.handshake("wallu"):
     time.sleep(0.5)
+
+
+thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
+thread.start()
 
 # Then connect to WALL-U Vision Pi
 print("Opening connection to WALL-U Vision...")

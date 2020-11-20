@@ -24,7 +24,7 @@ def generate_motor_request(joy_value):
     lower_zero = 470
     upper_zero = 530
 
-    proto_request.angle = 0 # Update!
+    proto_request.angle = 45 # Update!
 
     joy_value = int(joy_value)
     if joy_value > lower_zero and joy_value < upper_zero:
@@ -51,7 +51,7 @@ print("Opening connection to Controller Main...")
 while not mqtt_manager.handshake("laptop"):
     time.sleep(0.5)
 
-serial_interface = SerialInterface("/dev/tty.usbmodem14501")
+serial_interface = SerialInterface("/dev/tty.usbmodem14101")
 thread = threading.Thread(target=serial_interface.read_from_port)
 thread.start()
 

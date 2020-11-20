@@ -59,13 +59,15 @@ def mqtt_callback(client, userdata, message):
         motor_request.ParseFromString(payload)
         write_motor_request(motor_request)
 
+    if parsed_topic == "storage_control":
+        if payload.decode("utf-8") == "unlock":
+            print("Unlocking compartment...")
+            serial_interface.write_to_port("u;")
+
     '''
     print('Received message: "' + str(payload) +
           '" on topic "' + topic + '" with QoS ' + str(message.qos))
     '''
-
-# PySerial setup
-serial_interface = SerialInterface("/dev/ttyUSB0")
 
 # MQTT setup
 mqtt_id = "wallu"
@@ -77,6 +79,9 @@ mqtt_manager.start_reading()
 print("Opening connection to Controller Main...")
 while not mqtt_manager.handshake("laptop"):
     time.sleep(0.5)
+
+# PySerial setup
+serial_interface = SerialInterface("/dev/ttyUSB0")
 
 while True:
     pass
