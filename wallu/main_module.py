@@ -45,8 +45,7 @@ def write_motor_request(request):
 
     req += ";"
     
-    print(req)
-    #serial_interface.write_to_port(req)
+    serial_interface.write_to_port(req)
 
 def mqtt_callback(client, userdata, message):
     # Print all messages
@@ -66,7 +65,7 @@ def mqtt_callback(client, userdata, message):
     '''
 
 # PySerial setup
-#serial_interface = SerialInterface("/dev/ttyACM0")
+serial_interface = SerialInterface("/dev/ttyACM0")
 
 # MQTT setup
 mqtt_id = "wallu"
