@@ -24,6 +24,5 @@ class SerialInterface:
         message = message[3:]
         self.stack[topic] = message
 
-    def write_to_port(self, topic, message):
-        msg_str = topic + ":" + message + ";"
-        self.serial_fd.write(msg_str.encode())
+    def write_to_port(self, message):
+        self.serial_fd.write(message.encode())
