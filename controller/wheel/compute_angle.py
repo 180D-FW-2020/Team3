@@ -58,6 +58,7 @@ veryright_lowerbound = -70
 right_upperbound = -70
 right_lowerbound = -100
 
+steady_accelXangle = 0
 ##########################################
 pressed = True
 GPIO.setwarnings(False)
@@ -223,7 +224,6 @@ while True:
     b = datetime.datetime.now() - a
     a = datetime.datetime.now()
     LP = b.microseconds/(1000000*1.0)
-    outputString = ""
 
 
     ###############################################
@@ -389,28 +389,36 @@ while True:
         calibrating = 2 # go to calibrating state 2
     elif (calibrating == 0):
         #if(gyroZangle  < right_upperbound):
-        if (kalmanX < right_upperbound):
-            print("Turning completely right")
+        if (kalmanX < left_upperbound):
+            print("Turning completely left")
             #elif (gyroZangle < veryright_upperbound):
-        elif(kalmanX < veryright_upperbound):
-            print("Turning mostly right")
+        elif(kalmanX < veryleft_upperbound):
+            print("Turning mostly left")
             #elif (gyroZangle < slightlyright_upperbound):
-        elif (kalmanX < slightlyright_upperbound) :
-            print("Turning slightly right")
+        elif (kalmanX < slightlyleft_upperbound) :
+            print("Turning slightly left")
             #elif (gyroZangle < straight_upperbound):
         elif (kalmanX < straight_upperbound):
             print("Going straight")
             #elif (gyroZangle < slightlyleft_upperbound):
-        elif (kalmanX < slightlyleft_upperbound):
-            print("Turning slightly left")
+        elif (kalmanX < slightlyright_upperbound):
+            print("Turning slightly right")
             #elif (gyroZangle < veryleft_upperbound):
-        elif(kalmanX < veryleft_upperbound):
-            print("Turning mostly left")
+        elif(kalmanX < veryright_upperbound):
+            print("Turning mostly right")
         else:
-            print("Turning completely left")
+            print("Turning completely right")
         if (GPIO.input(10) == GPIO.HIGH): # press button connected to pin 10 if want to recalibrate steady state of steering wheel
             print("Button was pushed!\n")
             calibrating = 1 #will go into first state of calibration
+        ## The below code is for testing purposes, uncomment as needed ##
+        
+        #outputString = " # R_bound %5.2f VR_bound %5.2f SR_bound %5.2f S_Bound %5.2f SL_bound %5.2f # " % (left_upperbound, veryleft_upperbound, slightlyleft_upperbound, straight_upperbound, slightlyright_upperbound)
+        #print(outputString)
+        #print(kalmanX)
+        
+        ## End of testing code ##
+        
     else:
         print("Hold the IMU steady")
         if ((time.time()-calibration_start)<=2):
@@ -420,15 +428,14 @@ while True:
             elif (kalmanX < steady_lowerbound):
                 calibrating = 1
         else: # we have our steady state value
-            # eg if steady_gyroZangle is 0, then the values are
-            slightlylright_upperbound = steady_accelXangle - 10 # -10
-            veryright_upperbound = slightlyright_upperbound - 30 # -40
-            right_upperbound = veryright_upperbound - 30 # -70
-            
+            # eg if steady_gyroZangle is 0, then the values are            
             #straight_upperbound = slightlyleft_upperbound + 20
             straight_upperbound = steady_accelXangle + 10 # 10
-            slightlyleft_upperbound = straight_upperbound + 30 # 40
-            veryleft_upperbound = slightlyleft_upperbound + 30 # 70
+            slightlyright_upperbound = straight_upperbound + 30 # 40
+            veryright_upperbound = slightlyright_upperbound + 30 # 70
+            slightlyleft_upperbound = straight_upperbound - 20
+            veryleft_upperbound = slightlyleft_upperbound - 30
+            left_upperbound = veryleft_upperbound - 30
             calibrating = 0
     
 
