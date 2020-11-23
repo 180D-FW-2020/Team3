@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 from comms.mqtt import interface as mqtt_interface
 from comms.pyserial.serial_threaded import SerialInterface
 from comms.proto import motor_requests_pb2
+import compute_angle
 import threading
 import time
 
@@ -19,12 +20,12 @@ def mqtt_callback(client, userdata, message):
           '" on topic "' + topic + '" with QoS ' + str(message.qos))
     '''
 
-def generate_motor_request(joy_value):
+def generate_motor_request(joy_value, angle_value):
     proto_request = motor_requests_pb2.MotorRequest()
     lower_zero = 470
     upper_zero = 530
 
-    proto_request.angle = 0 # Update!
+    proto_request.angle = angle_value
 
     joy_value = int(joy_value)
     if joy_value > lower_zero and joy_value < upper_zero:
@@ -52,10 +53,12 @@ while not mqtt_manager.handshake("laptop"):
     time.sleep(0.5)
 
 serial_interface = SerialInterface("/dev/tty.usbmodem146301")
-thread = threading.Thread(target=serial_interface.read_from_port)
-thread.start()
+serial_thread = threading.Thread(target=serial_interface.read_from_port)
+serial_thread.start()
+
+imu_thread = threading.Thread(target=compute_angle.start_compute, args=(serial_interface.stack))
 
 while True:
-    if "JOY" in serial_interface.stack:
-        motor_request_proto = generate_motor_request(serial_interface.stack.pop("JOY"))
+    if "JOY" in serial_interface.stack and "steering_angle" in serial_interface.stack:
+        motor_request_proto = generate_motor_request(serial_interface.stack.pop("JOY"), serial_interface.stack["steering_angle"])
         mqtt_manager.send_message("motor_requests", motor_request_proto.SerializeToString())
