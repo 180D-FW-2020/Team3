@@ -1,15 +1,16 @@
+#pragma once
 // Pin definitions
 #define BATTERY_MONITOR_PIN A0
 #define LEFT_RPM_PIN 12
 #define RIGHT_RPM_PIN 13
-#define MOTOR_R_PWM 3
-#define MOTOR_R_IN1 A3
-#define MOTOR_R_IN2 A4
-#define MOTOR_L_PWM 11
-#define MOTOR_L_IN1 A1
-#define MOTOR_L_IN2 A2
+#define MOTOR_L_PWM 3
+#define MOTOR_L_IN1 A3
+#define MOTOR_L_IN2 A4
+#define MOTOR_R_PWM 11
+#define MOTOR_R_IN1 A1
+#define MOTOR_R_IN2 A2
 #define LOCK_SERVO_PIN 9
-#define CAMERA_SERVO_PIN 5 
+#define CAMERA_SERVO_PIN 5
 #define LOCK_SENSOR_PIN 3
 #define RANGE_TRIG_PIN 6
 #define RANGE_ECHO_PIN 4
@@ -25,3 +26,10 @@
 #define BATT_MAX 15.0
 #define BATTERY_R1 1000000
 #define BATTERY_R2 200000
+
+enum MotorDirection
+{
+    STOP,
+    FORWARD,
+    BACKWARD
+};
