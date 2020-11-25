@@ -83,3 +83,8 @@ bool Motor::ramp()
     else
         return false;
 }
+
+int Motor::get_pwm()
+{
+	return m_pwm;
+}
