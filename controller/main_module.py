@@ -8,7 +8,11 @@ import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.proto import motor_requests_pb2
 import time
+<<<<<<< Updated upstream
 import threading
+=======
+import numpy as np
+>>>>>>> Stashed changes
 
 
 class Coord:
@@ -142,7 +146,8 @@ while not mqtt_manager.handshake("vision"):
 image_hub = imagezmq.ImageHub()
 hud_data = HudData()
 while True:
-    rpi_name, image = image_hub.recv_image()
+    rpi_name, jpg_buffer = image_hub.recv_jpg()
+    image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
 
     battery_icon = hud_data.get_battery_icon()
     battery_offset = hud_data.battery_offset
