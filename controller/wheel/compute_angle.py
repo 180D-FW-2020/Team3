@@ -158,7 +158,6 @@ def kalmanFilterX ( accAngle, gyroRate, DT):
 
 
 def start_compute(values):
-
     gyroXangle = 0.0
     gyroYangle = 0.0
     gyroZangle = 0.0
