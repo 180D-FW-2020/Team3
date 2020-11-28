@@ -4,8 +4,15 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import cv2
 import imagezmq
+import voice_unlock
 from comms.mqtt import interface as mqtt_interface
+from comms.proto import motor_requests_pb2
 import time
+<<<<<<< Updated upstream
+import threading
+=======
+import numpy as np
+>>>>>>> Stashed changes
 
 
 class Coord:
@@ -97,22 +104,41 @@ def add_text_overlays(image, hud):
 
 def mqtt_callback(client, userdata, message):
     # Print all messages
-    payload = message.payload.decode("utf-8")
+    payload = message.payload
     topic = message.topic
-    mqtt_manager.pulse_check(topic, payload)
+    mqtt_manager.pulse_check(topic, payload.decode("utf-8"))
 
     '''
     print('Received message: "' + payload +
           '" on topic "' + topic + '" with QoS ' + str(message.qos))
     '''
 
+def voice_callback():
+    print("Sending unlock command")
+    mqtt_manager.send_message("storage_control", "unlock")
 
 mqtt_id = "laptop"
-mqtt_targets = ["vision"]
+mqtt_targets = ["vision", "wallu", "wheel"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
+# First connect to Wheel Main Pi
+print("Opening connection to Steering Wheel Main...")
+while not mqtt_manager.handshake("wheel"):
+    time.sleep(0.5)
+
+# Then connect to WALL-U Main Pi
+print("Opening connection to WALL-U Main...")
+while not mqtt_manager.handshake("wallu"):
+    time.sleep(0.5)
+
+
+thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
+thread.start()
+
+# Then connect to WALL-U Vision Pi
+print("Opening connection to WALL-U Vision...")
 while not mqtt_manager.handshake("vision"):
     time.sleep(0.5)
 
@@ -120,7 +146,8 @@ while not mqtt_manager.handshake("vision"):
 image_hub = imagezmq.ImageHub()
 hud_data = HudData()
 while True:
-    rpi_name, image = image_hub.recv_image()
+    rpi_name, jpg_buffer = image_hub.recv_jpg()
+    image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
 
     battery_icon = hud_data.get_battery_icon()
     battery_offset = hud_data.battery_offset

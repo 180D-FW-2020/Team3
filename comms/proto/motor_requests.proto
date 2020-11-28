@@ -1,0 +1,18 @@
+// Make sure to run protoc-3 after changing!
+
+syntax = "proto3";
+
+package wallu.motor_requests;
+
+message MotorRequest {
+
+    enum Direction {
+        STATIONARY = 0;
+        FORWARD = 1;
+        BACKWARD = 2;
+    }
+
+    int32 throttle = 1;
+    int32 angle = 2;
+    Direction direction = 3;
+}

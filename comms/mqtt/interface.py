@@ -40,7 +40,8 @@ class MqttInterface:
 
     def on_connect(self, client, userdata, flags, rc):
         # Connection request callback
-        print("Connection returned result: " + str(rc))
+        if rc != 0:
+            print("Could not establish connection to MQTT server. Returned code " + str(rc))
 
         for target in self.targets:
             target_topic = "pulse_" + str(target)
