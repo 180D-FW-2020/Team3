@@ -51,7 +51,12 @@ def mqtt_callback(client, userdata, message):
     # Print all messages
     payload = message.payload
     topic = message.topic
-    mqtt_manager.pulse_check(topic, payload.decode("utf-8"))
+    decoded_payload = ""
+    try:
+        decoded_payload = payload.decode("utf-8")
+    except:
+        pass
+    mqtt_manager.pulse_check(topic, decoded_payload)
 
     parsed_topic = topic.split('/')[-1]
     if parsed_topic == "motor_requests":
@@ -60,7 +65,7 @@ def mqtt_callback(client, userdata, message):
         write_motor_request(motor_request)
 
     if parsed_topic == "storage_control":
-        if payload.decode("utf-8") == "unlock":
+        if decoded_payload == "unlock":
             print("Unlocking compartment...")
             serial_interface.write_to_port("u;")
 
