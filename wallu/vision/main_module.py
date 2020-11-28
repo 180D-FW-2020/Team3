@@ -4,11 +4,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 
 import socket
 import time
-from imutils.video import VideoStream
+from imutils.video import WebcamVideoStream
 import imagezmq
 import argparse
 from comms.mqtt import interface as mqtt_interface
 import time
+import cv2
+import imutils
 
 ap = argparse.ArgumentParser()
 ap.add_argument("-s", "--server-ip", required=True,
@@ -40,9 +42,14 @@ while not mqtt_manager.handshake("laptop"):
 
 
 rpi_name = socket.gethostname()  # send RPi hostname with each image
-picam = VideoStream(src=0).start()
-time.sleep(2.0)  # allow camera sensor to warm up
+picam = WebcamVideoStream(src=0).start()
+#time.sleep(2.0)  # allow camera sensor to warm up
+jpeg_quality = 90
 
 while True:  # send images as stream until Ctrl-C
     image = picam.read()
-    sender.send_image(rpi_name, image)
+    image = imutils.resize(image, width=480, inter=cv2.INTER_NEAREST)
+    ret_code, jpg_buffer = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
+    sender.send_image(rpi_name, jpg_buffer)
+
+picam.stop()
