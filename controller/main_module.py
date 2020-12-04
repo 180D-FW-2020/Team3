@@ -4,15 +4,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import cv2
 import imagezmq
-import voice_unlock
+#import voice_unlock
 from comms.mqtt import interface as mqtt_interface
-from comms.proto import motor_requests_pb2
+#from comms.proto import motor_requests_pb2
 import time
-<<<<<<< Updated upstream
 import threading
-=======
 import numpy as np
->>>>>>> Stashed changes
+import imutils
+from pyimagesearch.shapedetector import ShapeDetector
 
 
 class Coord:
@@ -122,7 +121,7 @@ mqtt_targets = ["vision", "wallu", "wheel"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
-
+'''
 # First connect to Wheel Main Pi
 print("Opening connection to Steering Wheel Main...")
 while not mqtt_manager.handshake("wheel"):
@@ -136,7 +135,7 @@ while not mqtt_manager.handshake("wallu"):
 
 thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 thread.start()
-
+'''
 # Then connect to WALL-U Vision Pi
 print("Opening connection to WALL-U Vision...")
 while not mqtt_manager.handshake("vision"):
@@ -145,9 +144,59 @@ while not mqtt_manager.handshake("vision"):
 
 image_hub = imagezmq.ImageHub()
 hud_data = HudData()
+# Define range of green color in HSV
+#lower_green = np.array([50, 70, 50])
+#upper_green = np.array([255, 210, 255])
+lower_green = np.array([29, 86, 6])
+upper_green = np.array([64, 255, 255])
+d_rectangle = np.zeros((240, 320, 3), dtype=np.uint8)
 while True:
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
+
+    #convert BGR to HSV
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_green,  upper_green)
+    res = cv2.bitwise_and(image, image, mask=mask)
+
+    # Resize the image to a smaller factor so that the shapes
+    # can be approximated better
+    resized = imutils.resize(res, width=300)
+    ratio = image.shape[0] / float(resized.shape[0])
+
+    # convert the resized image to grayscale, blur it slightly,
+    # and threshold it slightly
+    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
+    ret, thresh = cv2.threshold(blurred, 127, 255, 0)
+
+    # find contours in the thresholded image and initialize the
+    # shape detector
+    cnts = cv2.findContours(
+        thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cnts = imutils.grab_contours(cnts)
+    sd = ShapeDetector()
+
+    #loop over the contours
+    for c in cnts:
+        # compute the center of the contour, then detect the name of
+        # the shape using only the contour
+        M = cv2.moments(c)
+        if (int(M["m00"]) != 0):
+            cX = int((M["m10"] / M["m00"]) * ratio)
+            cY = int((M["m01"] / M["m00"]) * ratio)
+            shape = sd.detect(c)
+            if (shape == "circle"):
+                # multiply the contour (x, y)-coordinates by the resize ratio
+                # then draw the contours and the name of the shape on the image
+                c = c.astype("float")
+                c *= ratio
+                c = c.astype("int")
+                cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
+                cv2.putText(image, shape, (cX, cY),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
+    # End of shape recognition
 
     battery_icon = hud_data.get_battery_icon()
     battery_offset = hud_data.battery_offset
