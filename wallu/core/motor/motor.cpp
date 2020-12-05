@@ -23,15 +23,32 @@ void Motor::set_throttle(int pwm_value, MotorDirection dir)
     {
     case STOP:
     {
-        if (dir == m_prev_dir || m_prev_dir == STOP)
+        bounded_pwm = 0;
+        // activate brakes if trying to stop
+        if (dir == STOP)
+        {
+            digitalWrite(m_pins.backward, LOW);
+            digitalWrite(m_pins.forward, LOW);
+        }
+        // if moving in same direction as last time, no need to delay
+        else if (m_prev_dir == dir)
+        {
             m_dir = dir;
-        else if ((millis() - m_stop_timer > 100) && m_dir != dir)
-            m_dir = dir;
-        return;
+            return;
+        }
+        else
+        {
+            if (millis() - m_stop_timer > 100)
+            {
+                m_dir = dir;
+                return;
+            }
+        }
         break;
     }
     case FORWARD:
     {
+        // Although we want to switch direction, slow down in current direction
         if (dir == BACKWARD || dir == STOP)
         {
             bounded_pwm = 0;
@@ -54,10 +71,17 @@ void Motor::set_throttle(int pwm_value, MotorDirection dir)
 
     if (ramp())
         if (bounded_pwm - m_pwm > 0) // increasing
-            m_pwm += 1;
+        {
+            m_pwm += 15;
+            if (m_pwm > bounded_pwm)
+                m_pwm = bounded_pwm;
+        }
         else if (bounded_pwm - m_pwm < 0) //decreasing
-            m_pwm -= 1;
-
+        {
+            m_pwm -= 45;
+            if (m_pwm < bounded_pwm)
+                m_pwm = bounded_pwm;
+        }
     analogWrite(m_pins.pwm, m_pwm);
     if (m_pwm == 0 && m_dir != STOP)
     {
@@ -74,7 +98,7 @@ int Motor::get_pwm()
 
 bool Motor::ramp()
 {
-    range = map(m_pwm, 0, 255, 80, 0);
+    unsigned long range = map(m_pwm, 0, 255, 80, 0);
     if ((millis() - m_timer) > range)
     {
         m_timer = millis();
@@ -82,9 +106,4 @@ bool Motor::ramp()
     }
     else
         return false;
-}
-
-int Motor::get_pwm()
-{
-	return m_pwm;
 }

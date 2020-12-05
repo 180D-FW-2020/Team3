@@ -7,6 +7,7 @@ public:
     MotorControl();
     int process_request(MotorDirection req_dir, int req_throttle, int req_angle);
     int perform_movement(MotorDirection dir, int throttle, int angle);
+    int check_stationary();
 
 private:
     Motor *m_left_motor;

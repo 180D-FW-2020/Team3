@@ -14,6 +14,7 @@ Servo camera_servo;
 byte servo_position = 0; // placeholder until servo library made
 byte lock_hall = -1;
 auto lock_timer = 0;
+auto unlock_timer = 0;
 
 // HUD
 int battery_level = -1;
@@ -60,6 +61,28 @@ int calculate_battery(int read_in)
   return 100.0 * (raw_voltage - BATT_MIN) / (BATT_MAX - BATT_MIN);
 }
 
+void set_eye_pattern(String pattern)
+{
+  if (pattern == "RED")
+  {
+    digitalWrite(RED_LED_EN_PIN, 255);
+    digitalWrite(GREEN_LED_EN_PIN, 0);
+    digitalWrite(BLUE_LED_EN_PIN, 0);
+  }
+  if (pattern == "GREEN")
+  {
+    digitalWrite(RED_LED_EN_PIN, 0);
+    digitalWrite(GREEN_LED_EN_PIN, 255);
+    digitalWrite(BLUE_LED_EN_PIN, 0);
+  }
+  if (pattern == "BLUE")
+  {
+    digitalWrite(RED_LED_EN_PIN, 0);
+    digitalWrite(GREEN_LED_EN_PIN, 0);
+    digitalWrite(BLUE_LED_EN_PIN, 255);
+  }
+}
+
 void setup()
 {
   // Initialization of all Arduino pins
@@ -82,16 +105,19 @@ void setup()
   lock_servo.attach(LOCK_SERVO_PIN);
   Serial.begin(9600);
   self_test();
+  lock_servo.write(200);
+  set_eye_pattern("BLUE"); // default eye color
 }
 
 void loop()
 {
   // Read in Serial messages from Pi
   wallu_comms.check_for_request();
-
+  //Serial.println(wallu_comms.check_flag(MOTOR));
   // Handle motor requests
-  if (wallu_comms.check_flag(MOTOR))
+  if (wallu_comms.check_flag(MOTOR) && lock_status)
   {
+    //Serial.println(wallu_comms.get_req_throttle());
     int check = motor_control.process_request(wallu_comms.get_req_dir(), wallu_comms.get_req_throttle(), wallu_comms.get_req_angle());
     wallu_comms.set_flag(MOTOR, false);
   }
@@ -105,27 +131,51 @@ void loop()
   // Handle unlock requests
   if (wallu_comms.check_flag(UNLOCK))
   {
+    //Serial.println("got here");
     if (stationary)
     {                        // locked and stationary
-      lock_servo.write(200); // unlocked
+      lock_servo.write(110); // unlocked
       lock_status = 0;
       lock_timer = millis();
+      unlock_timer = millis();
+      set_eye_pattern("GREEN");
     }
     wallu_comms.set_flag(UNLOCK, false);
   }
 
   // update WALL-U HUD status
   battery_level = calculate_battery(BATTERY_MONITOR_PIN);
-  // Read in RPM sensors, then do this
-  if (rpm_right == 0 && rpm_left == 0)
-    stationary = true; // FIX
-
-  // Lock after 5 seconds
-  if (!lock_status)
+  if (battery_level < BATT_MIN)
   {
-    if (millis() - lock_timer > 5000)
+    set_eye_pattern("RED");
+  }
+  else
+  {
+    set_eye_pattern("BLUE");
+  }
+
+  // Read in RPM sensors, then do this
+  if (motor_control.check_stationary())
+    stationary = true;
+  else
+    stationary = false;
+
+  // Lock
+  if (!lock_status && (millis() - unlock_timer > 4000))
+  {
+    if (!digitalRead(LOCK_SENSOR_PIN) && lock_hall == 0)
     {
-      lock_servo.write(110);
+      lock_timer = millis();
+      lock_hall = 1;
+    }
+    else if (digitalRead(LOCK_SENSOR_PIN))
+    {
+      lock_hall = 0;
+    }
+    if (millis() - lock_timer > 500 && lock_hall == 1)
+    {
+      set_eye_pattern("BLUE");
+      lock_servo.write(200);
       lock_status = 1;
     }
   }

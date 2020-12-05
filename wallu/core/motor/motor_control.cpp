@@ -42,13 +42,13 @@ int MotorControl::perform_movement(MotorDirection dir, int throttle, int angle)
     }
     else if (dir == FORWARD)
     { // if it's forward, we need to account for turning
-        if (thottle < 5)
+        if (throttle < 5)
         {
             throttle = 0;
         }
-        else if (throttle < 15)
+        else if (throttle < 20)
         {
-            throttle = 15;
+            throttle = 20;
         }
         int percentage = map(abs(angle), 0, 90, 0, 100);
         float reduction = 100.0 - (float)percentage;
@@ -84,4 +84,12 @@ int MotorControl::perform_movement(MotorDirection dir, int throttle, int angle)
     m_angle = angle;
     m_current_dir = dir;
     return 0;
+}
+
+int MotorControl::check_stationary()
+{
+    if (m_left_motor->get_pwm() == 0 && m_right_motor->get_pwm() == 0)
+        return 1;
+    else
+        return 0;
 }

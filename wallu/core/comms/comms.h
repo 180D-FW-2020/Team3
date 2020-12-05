@@ -11,6 +11,7 @@ class Flags;
 class SerialComms
 {
 public:
+    SerialComms();
     void process_request();
     void check_for_request();
     bool check_flag(flag flag);
