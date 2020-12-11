@@ -117,6 +117,7 @@ def voice_callback():
     mqtt_manager.send_message("storage_control", "unlock")
 
 mqtt_id = "laptop"
+#mqtt_targets = ["vision"]
 mqtt_targets = ["vision", "wallu", "wheel"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
@@ -145,11 +146,11 @@ while not mqtt_manager.handshake("vision"):
 image_hub = imagezmq.ImageHub()
 hud_data = HudData()
 # Define range of green color in HSV
-#lower_green = np.array([50, 70, 50])
-#upper_green = np.array([255, 210, 255])
-lower_green = np.array([29, 86, 6])
-upper_green = np.array([64, 255, 255])
+lower_green = np.array([50, 100, 100])
+upper_green = np.array([70, 255, 255])
 d_rectangle = np.zeros((240, 320, 3), dtype=np.uint8)
+object_detected = 0
+unlock_threshold = 0
 while True:
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
@@ -159,44 +160,31 @@ while True:
     mask = cv2.inRange(hsv, lower_green,  upper_green)
     res = cv2.bitwise_and(image, image, mask=mask)
 
-    # Resize the image to a smaller factor so that the shapes
-    # can be approximated better
-    resized = imutils.resize(res, width=300)
-    ratio = image.shape[0] / float(resized.shape[0])
-
-    # convert the resized image to grayscale, blur it slightly,
+    # convert the image to grayscale, blur it slightly,
     # and threshold it slightly
-    gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
+    gray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
-    ret, thresh = cv2.threshold(blurred, 127, 255, 0)
-
+    #thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
+    #ret, thresh = cv2.threshold(blurred, 127, 255, 0)
+    ret, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    
     # find contours in the thresholded image and initialize the
     # shape detector
-    cnts = cv2.findContours(
-        thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    cnts = imutils.grab_contours(cnts)
-    sd = ShapeDetector()
+    #cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    #cnts = imutils.grab_contours(cnts)
+    contours, hierarchy = cv2.findContours(thresh, 1, 2)
 
-    #loop over the contours
-    for c in cnts:
-        # compute the center of the contour, then detect the name of
-        # the shape using only the contour
-        M = cv2.moments(c)
-        if (int(M["m00"]) != 0):
-            cX = int((M["m10"] / M["m00"]) * ratio)
-            cY = int((M["m01"] / M["m00"]) * ratio)
-            shape = sd.detect(c)
-            if (shape == "circle"):
-                # multiply the contour (x, y)-coordinates by the resize ratio
-                # then draw the contours and the name of the shape on the image
-                c = c.astype("float")
-                c *= ratio
-                c = c.astype("int")
-                cv2.drawContours(image, [c], -1, (0, 255, 0), 2)
-                cv2.putText(image, shape, (cX, cY),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-    # End of shape recognition
+    max_contour_area = 0
+    if (len(contours) > 0):
+        cnt = contours[0]
+        object_detected=1
+        for contour_i in contours:
+            if cv2.contourArea(contour_i) > max_contour_area:
+                cnt = contour_i
+    if (object_detected and (max_contour_area>5000)):
+        unlock_threshold += 1
+    if (unlock_threshold > 100):
+        print("door has unlocked")
 
     battery_icon = hud_data.get_battery_icon()
     battery_offset = hud_data.battery_offset
