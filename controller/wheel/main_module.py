@@ -52,11 +52,12 @@ print("Opening connection to Controller Main...")
 while not mqtt_manager.handshake("laptop"):
     time.sleep(0.5)
 
-serial_interface = SerialInterface("/dev/tty.usbmodem146301")
+serial_interface = SerialInterface("/dev/ttyUSB0")
 serial_thread = threading.Thread(target=serial_interface.read_from_port)
 serial_thread.start()
 
-imu_thread = threading.Thread(target=compute_angle.start_compute, args=(serial_interface.stack))
+imu_thread = threading.Thread(target=compute_angle.start_compute, args=(serial_interface.stack,))
+imu_thread.start()
 
 while True:
     if "JOY" in serial_interface.stack and "steering_angle" in serial_interface.stack:

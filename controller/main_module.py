@@ -8,11 +8,8 @@ import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.proto import motor_requests_pb2
 import time
-<<<<<<< Updated upstream
 import threading
-=======
 import numpy as np
->>>>>>> Stashed changes
 
 
 class Coord:
@@ -156,8 +153,7 @@ while True:
     add_text_overlays(image, hud_data)
 
     cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty(
-        rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     cv2.imshow(rpi_name, image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

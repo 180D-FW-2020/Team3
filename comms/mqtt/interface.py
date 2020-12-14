@@ -1,3 +1,8 @@
+'''
+To start broker, run:
+/usr/local/sbin/mosquitto -c comms/mqtt/config/mosquitto.conf
+'''
+
 import paho.mqtt.client as mqtt
 
 TOPIC_PREFIX = "ece180d/team3/wallu/"
@@ -36,12 +41,14 @@ class MqttInterface:
         self.set_callback(callback)
 
         # Connect to broker
-        self.mqtt_client.connect_async('mqtt.eclipse.org')
+        self.mqtt_client.connect_async('192.168.1.206')
 
     def on_connect(self, client, userdata, flags, rc):
         # Connection request callback
         if rc != 0:
             print("Could not establish connection to MQTT server. Returned code " + str(rc))
+
+        print("Connected to MQTT broker.")
 
         for target in self.targets:
             target_topic = "pulse_" + str(target)
