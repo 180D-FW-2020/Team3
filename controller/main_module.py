@@ -4,12 +4,14 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import cv2
 import imagezmq
-import voice_unlock
+#import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.proto import motor_requests_pb2
 import time
 import threading
 import numpy as np
+import subprocess
+import select
 
 
 class Coord:
@@ -130,9 +132,8 @@ print("Opening connection to WALL-U Main...")
 while not mqtt_manager.handshake("wallu"):
     time.sleep(0.5)
 
-
-thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
-thread.start()
+#thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
+#thread.start()
 
 # Then connect to WALL-U Vision Pi
 print("Opening connection to WALL-U Vision...")
@@ -152,8 +153,8 @@ while True:
 
     add_text_overlays(image, hud_data)
 
-    cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
-    cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+    #cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
+    #cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
     cv2.imshow(rpi_name, image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

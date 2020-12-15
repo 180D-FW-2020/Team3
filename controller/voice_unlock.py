@@ -1,7 +1,8 @@
-#!/usr/bin/env python3
+import os
+import sys
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# NOTE: this example requires PyAudio because it uses the Microphone class
-
+from comms.mqtt import interface as mqtt_interface
 import speech_recognition as sr
 
 def start_listening(keyword, callback):
@@ -30,8 +31,11 @@ def start_listening(keyword, callback):
                 "Could not request results from Google Speech Recognition service; {0}".format(e))
 
 def default_callback():
-    print("Recognized unlock command")
+    print("Sending unlock command..")
+    mqtt_manager.send_message("storage_control", "unlock")
 
-if __name__ == '__main__':
-    print("Main routine, starting...")
-    start_listening("unlock", default_callback)
+mqtt_id = "voice_unlock"
+mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=[], topics=[])
+mqtt_manager.start_reading()
+
+start_listening("unlock", default_callback)
