@@ -116,6 +116,79 @@ def voice_callback():
     print("Sending unlock command")
     mqtt_manager.send_message("storage_control", "unlock")
 
+
+
+def unlock_pose_temps(image):
+    # Define range of green color in HSV
+    lower_green = np.array([50, 100, 100])
+    upper_green = np.array([70, 255, 255])
+    # Define range of blue color in HSV
+    lower_blue = np.array([110, 100, 100])
+    upper_blue = np.array([130, 255, 255])
+    # variables to keep track of states
+    object_detected=0
+    green_detected=0
+    blue_detected=0
+
+    upper_half_image=image[0:180][:]
+    lower_half_image=image[180:360][:]            
+    #convert BGR to HSV
+    hsv = cv2.cvtColor(upper_half_image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_green,  upper_green)
+    res = cv2.bitwise_and(upper_half_image, upper_half_image, mask=mask)
+    # convert the image to grayscale, blur it slightly,
+    # and threshold
+    gray = cv2.cvtColor(res.astype('float32'), cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    ret, thresh = cv2.threshold(blurred.astype('uint8'), 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    cv2.imshow("thresh_green", thresh)
+    # find contours in the thresholded image and initialize the max color area
+    contours, hierarchy = cv2.findContours(thresh, 1, 2)
+    max_contour_area = 0
+    if (len(contours) > 0):
+        cnt = contours[0]
+        object_detected=1
+        for contour_i in contours:
+            if cv2.contourArea(contour_i) > max_contour_area:
+                cnt = contour_i
+                max_contour_area=cv2.contourArea(contour_i)
+    if (object_detected and (max_contour_area>6000)):
+        green_detected = 1
+    object_detected = 0
+    
+    lower_blue = np.array([110, 100, 100])
+    upper_blue = np.array([130, 255, 255])
+    #convert BGR to HSV
+    hsv = cv2.cvtColor(lower_half_image, cv2.COLOR_BGR2HSV)
+    mask = cv2.inRange(hsv, lower_blue,  upper_blue)
+    res = cv2.bitwise_and(lower_half_image, lower_half_image, mask=mask)
+    # convert the image to grayscale, blur it slightly,
+    # and threshold
+    gray = cv2.cvtColor(res.astype('float32'), cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
+    ret, thresh = cv2.threshold(blurred.astype('uint8'), 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    cv2.imshow("thresh_blue", thresh)
+    # find contours in the thresholded image and initialize the max color area
+    contours, hierarchy = cv2.findContours(thresh, 1, 2)
+    max_contour_area = 0
+    if (len(contours) > 0):
+        cnt = contours[0]
+        object_detected=1
+        for contour_i in contours:
+            if cv2.contourArea(contour_i) > max_contour_area:
+                cnt = contour_i
+                max_contour_area=cv2.contourArea(contour_i)
+    if (object_detected and (max_contour_area>6000)):
+        blue_detected = 1
+    if (blue_detected and green_detected):
+        print("It works")
+        return True
+    else:
+        return False
+    
+
+
+
 mqtt_id = "laptop"
 #mqtt_targets = ["vision"]
 mqtt_targets = ["vision", "wallu", "wheel"]
@@ -137,54 +210,19 @@ while not mqtt_manager.handshake("wallu"):
 thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 thread.start()
 '''
+'''
 # Then connect to WALL-U Vision Pi
 print("Opening connection to WALL-U Vision...")
 while not mqtt_manager.handshake("vision"):
     time.sleep(0.5)
-
+'''
 
 image_hub = imagezmq.ImageHub()
 hud_data = HudData()
-# Define range of green color in HSV
-lower_green = np.array([50, 100, 100])
-upper_green = np.array([70, 255, 255])
-d_rectangle = np.zeros((240, 320, 3), dtype=np.uint8)
-object_detected = 0
-unlock_threshold = 0
 while True:
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
-
-    #convert BGR to HSV
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, lower_green,  upper_green)
-    res = cv2.bitwise_and(image, image, mask=mask)
-
-    # convert the image to grayscale, blur it slightly,
-    # and threshold it slightly
-    gray = cv2.cvtColor(res, cv2.COLOR_BGR2GRAY)
-    blurred = cv2.GaussianBlur(gray, (5, 5), 0)
-    #thresh = cv2.threshold(blurred, 60, 255, cv2.THRESH_BINARY)[1]
-    #ret, thresh = cv2.threshold(blurred, 127, 255, 0)
-    ret, thresh = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    
-    # find contours in the thresholded image and initialize the
-    # shape detector
-    #cnts = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    #cnts = imutils.grab_contours(cnts)
-    contours, hierarchy = cv2.findContours(thresh, 1, 2)
-
-    max_contour_area = 0
-    if (len(contours) > 0):
-        cnt = contours[0]
-        object_detected=1
-        for contour_i in contours:
-            if cv2.contourArea(contour_i) > max_contour_area:
-                cnt = contour_i
-    if (object_detected and (max_contour_area>5000)):
-        unlock_threshold += 1
-    if (unlock_threshold > 100):
-        print("door has unlocked")
+    #unlock_pose(image)
 
     battery_icon = hud_data.get_battery_icon()
     battery_offset = hud_data.battery_offset
