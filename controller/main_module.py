@@ -87,7 +87,7 @@ def mqtt_callback(client, userdata, message):
         vitals = vitals_pb2.Vitals()
         vitals.ParseFromString(payload)
         hud_data.battery_level = str(vitals.battery_voltage)[:-1] + "." + str(vitals.battery_voltage)[-1]
-        if vitals.payload == "L":
+        if vitals.payload == "L" and hud_data.payload == "Unlocked":
             hud_data.payload = "Locked"
 
 
@@ -130,7 +130,6 @@ while True:
     image = cv2.resize(image, (1920,1080))
 
     if hud_data.unlock == 0:
-        print(time.time() - hud_data.unlock_timer)
         if time.time() - hud_data.unlock_timer > 20:
             # Unlock time out
             print("Unlock sequence timed out...")
