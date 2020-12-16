@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 import numpy as np
 import cv2
+=======
+>>>>>>> 4fa30ab0b193b9bb7281683acd4e116a34ec0e33
 def unlock_pose(image):
     # Define range of green color in HSV
     lower_green = np.array([50, 100, 100])
