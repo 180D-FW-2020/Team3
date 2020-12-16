@@ -32,7 +32,7 @@ def start_listening(keyword, callback):
 
 def default_callback():
     print("Sending unlock command..")
-    mqtt_manager.send_message("storage_control", "unlock")
+    mqtt_manager.send_message("storage_control", "unlock0")
 
 mqtt_id = "voice_unlock"
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=[], topics=[])

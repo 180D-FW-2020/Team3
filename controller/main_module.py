@@ -9,10 +9,12 @@ from comms.mqtt import interface as mqtt_interface
 from comms.proto import motor_requests_pb2
 import time
 import threading
+import pose_detect
 import numpy as np
 import subprocess
 import select
 
+kUnlockTimer = 20
 
 class Coord:
     def __init__(self, y, x):
@@ -22,63 +24,14 @@ class Coord:
 
 class HudData:
     def __init__(self):
-        self.battery_level = 100
+        self.battery_level = -1
         self.speed = 0
         self.throttle = 100
+        self.throttle_dir = ""
         self.range_finder = "Out of Range"
         self.payload = "Locked"
-        self.init_icon_offsets()
-        self.load_icons()
-
-    def init_icon_offsets(self):
-        self.battery_offset = Coord(y=10, x=40)
-
-    def load_icons(self):
-        self.battery_icons = {}
-        self.battery_icons["full"] = cv2.imread(
-            "graphics/icons/battery/full-battery.png", -1)
-        self.battery_icons["almost_full"] = cv2.imread(
-            "graphics/icons/battery/battery-almost-full.png", -1)
-        self.battery_icons["half_full"] = cv2.imread(
-            "graphics/icons/battery/half-battery.png", -1)
-        self.battery_icons["low"] = cv2.imread(
-            "graphics/icons/battery/low-battery.png", -1)
-        self.battery_icons["empty"] = cv2.imread(
-            "graphics/icons/battery/empty-battery.png", -1)
-
-        # Resize icons
-        scale_percent = 20
-        width = int(self.battery_icons["full"].shape[1]*scale_percent / 100)
-        height = int(self.battery_icons["full"].shape[0]*scale_percent / 100)
-        for level in self.battery_icons:
-            self.battery_icons[level] = cv2.resize(
-                self.battery_icons[level], (width, height), interpolation=cv2.INTER_AREA)
-
-    def get_battery_icon(self):
-        if self.battery_level > 90:
-            return self.battery_icons["full"]
-        elif self.battery_level > 70:
-            return self.battery_icons["almost_full"]
-        elif self.battery_level > 40:
-            return self.battery_icons["half_full"]
-        elif self.battery_level > 20:
-            return self.battery_icons["low"]
-        else:
-            return self.battery_icons["empty"]
-
-
-def overlay_image(base, layer, offset):
-    # Function from https://stackoverflow.com/questions/14063070/overlay-a-smaller-image-on-a-larger-image-python-opencv
-    y1, y2 = offset.y, offset.y + layer.shape[0]
-    x1, x2 = offset.x, offset.x + layer.shape[1]
-
-    alpha_layer = layer[:, :, 3] / 255.0
-    alpha_base = 1.0 - alpha_layer
-
-    for i in range(3):
-        base[y1:y2, x1:x2, i] = (
-            alpha_layer * layer[:, :, i] + alpha_base * base[y1:y2, x1:x2, i])
-
+        self.unlock = -1
+        self.unlock_timer = -1
 
 def overlay_text(image, text, font_scale, bottom_left, thickness=2):
     cv2.putText(image, text,
@@ -90,35 +43,57 @@ def overlay_text(image, text, font_scale, bottom_left, thickness=2):
 
 
 def add_text_overlays(image, hud):
+
+    kOffsetX = 20
+    kOffsetY = 20
+
     overlay_text(image, "System Overview", 2,
-                 (battery_offset.x, battery_offset.y+150), 3)
-    overlay_text(image, "- Speed: " + str(hud.speed) + "m/s", 1.5,
-                 (battery_offset.x, battery_offset.y+200))
-    overlay_text(image, "- Throttle: " + str(hud.throttle) + "%", 1.5,
-                 (battery_offset.x, battery_offset.y+240))
-    overlay_text(image, "- Range Finder: " + str(hud.range_finder), 1.5,
-                 (battery_offset.x, battery_offset.y+280))
+                 (kOffsetX, kOffsetY+150), 3)
+    overlay_text(image, "- Battery Level: " + str(hud.battery_level) + "V", 1.5,
+                 (kOffsetX, kOffsetY+200))
+    overlay_text(image, "- Throttle: " + hud_data.throttle_dir + str(hud.throttle) + "%", 1.5,
+                 (kOffsetX, kOffsetY+240))
     overlay_text(image, "- Payload Compartment: " + hud.payload, 1.5,
-                 (battery_offset.x, battery_offset.y+320))
+                 (kOffsetX, kOffsetY+280))
 
 def mqtt_callback(client, userdata, message):
-    # Print all messages
     payload = message.payload
     topic = message.topic
-    mqtt_manager.pulse_check(topic, payload.decode("utf-8"))
+    decoded_payload = ""
+    try:
+        decoded_payload = payload.decode("utf-8")
+    except:
+        pass
+    mqtt_manager.pulse_check(topic, decoded_payload)
 
-    '''
-    print('Received message: "' + payload +
-          '" on topic "' + topic + '" with QoS ' + str(message.qos))
-    '''
+    parsed_topic = topic.split('/')[-1]
+    if parsed_topic == "motor_requests":
+        motor_request = motor_requests_pb2.MotorRequest()
+        motor_request.ParseFromString(payload)
+        hud_data.throttle = motor_request.throttle
+        if motor_request.direction == 2:
+            hud_data.throttle_dir = "R "
+        else:
+            hud_data.throttle_dir = ""
+
+    if parsed_topic == "storage_control":
+        if decoded_payload == "unlock0":
+            hud_data.payload = "Beginning Unlock Sequence"
+            hud_data.unlock = 0
+            hud_data.unlock_timer = time.time()
+
+
+
 
 def voice_callback():
     print("Sending unlock command")
     mqtt_manager.send_message("storage_control", "unlock")
 
+hud_data = HudData()
+
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "wheel"]
-mqtt_topics = []
+mqtt_topics = ["motor_requests"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
@@ -142,14 +117,25 @@ while not mqtt_manager.handshake("vision"):
 
 
 image_hub = imagezmq.ImageHub()
-hud_data = HudData()
 while True:
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
+    image = cv2.resize(image, (1920,1080))
 
-    battery_icon = hud_data.get_battery_icon()
-    battery_offset = hud_data.battery_offset
-    overlay_image(image, battery_icon, battery_offset)
+    if hud_data.unlock == 0:
+        if time.time() - hud_data.unlock_timer > 20:
+            # Unlock time out
+            print("Unlock sequence timed out...")
+            mqtt_manager.send_message("storage_control", "unlock2")
+            hud_data.unlock = -1
+
+        image, unlock_detected = pose_detect.unlock_pose(image)
+        if unlock_detected:
+            print("Correct passcode...")
+            mqtt_manager.send_message("storage_control", "unlock1")
+            hud_data.unlock = 1
+            hud_data.payload = "Unlocked."
+        
 
     add_text_overlays(image, hud_data)
 

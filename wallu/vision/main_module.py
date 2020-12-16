@@ -41,7 +41,7 @@ print("Connected to Main Controller.")
 rpi_name = socket.gethostname()  # send RPi hostname with each image
 picam = WebcamVideoStream(src=0).start()
 #time.sleep(2.0)  # allow camera sensor to warm up
-jpeg_quality = 90
+jpeg_quality = 70
 
 while True:  # send images as stream until Ctrl-C
     image = picam.read()
