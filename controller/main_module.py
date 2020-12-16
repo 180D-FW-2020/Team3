@@ -107,10 +107,10 @@ def mqtt_callback(client, userdata, message):
     topic = message.topic
     mqtt_manager.pulse_check(topic, payload.decode("utf-8"))
 
-    '''
+    
     print('Received message: "' + payload +
           '" on topic "' + topic + '" with QoS ' + str(message.qos))
-    '''
+    
 
 def voice_callback():
     print("Sending unlock command")
@@ -141,7 +141,7 @@ def unlock_pose_temps(image):
     gray = cv2.cvtColor(res.astype('float32'), cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     ret, thresh = cv2.threshold(blurred.astype('uint8'), 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    cv2.imshow("thresh_green", thresh)
+    #cv2.imshow("thresh_green", thresh)
     # find contours in the thresholded image and initialize the max color area
     contours, hierarchy = cv2.findContours(thresh, 1, 2)
     max_contour_area = 0
@@ -167,7 +167,7 @@ def unlock_pose_temps(image):
     gray = cv2.cvtColor(res.astype('float32'), cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     ret, thresh = cv2.threshold(blurred.astype('uint8'), 0, 255, cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    cv2.imshow("thresh_blue", thresh)
+    #cv2.imshow("thresh_blue", thresh)
     # find contours in the thresholded image and initialize the max color area
     contours, hierarchy = cv2.findContours(thresh, 1, 2)
     max_contour_area = 0
@@ -181,7 +181,7 @@ def unlock_pose_temps(image):
     if (object_detected and (max_contour_area>6000)):
         blue_detected = 1
     if (blue_detected and green_detected):
-        print("It works")
+        #print("It works")
         return True
     else:
         return False
@@ -195,7 +195,7 @@ mqtt_targets = ["vision", "wallu", "wheel"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
-'''
+
 # First connect to Wheel Main Pi
 print("Opening connection to Steering Wheel Main...")
 while not mqtt_manager.handshake("wheel"):
@@ -209,13 +209,13 @@ while not mqtt_manager.handshake("wallu"):
 
 thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 thread.start()
-'''
-'''
+
+
 # Then connect to WALL-U Vision Pi
 print("Opening connection to WALL-U Vision...")
 while not mqtt_manager.handshake("vision"):
     time.sleep(0.5)
-'''
+
 
 image_hub = imagezmq.ImageHub()
 hud_data = HudData()

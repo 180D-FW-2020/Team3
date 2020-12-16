@@ -26,10 +26,10 @@ def mqtt_callback(client, userdata, message):
     topic = message.topic
     mqtt_manager.pulse_check(topic, payload)
     
-    '''
+    
     print('Received message: "' + payload +
           '" on topic "' + topic + '" with QoS ' + str(message.qos))
-    '''
+    
 
 mqtt_id = "vision"
 mqtt_targets = ["laptop"]
@@ -37,14 +37,15 @@ mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
+
 while not mqtt_manager.handshake("laptop"):
-    time.sleep(0.5)
+time.sleep(0.5)
 
 
 rpi_name = socket.gethostname()  # send RPi hostname with each image
 picam = WebcamVideoStream(src=0).start()
 #time.sleep(2.0)  # allow camera sensor to warm up
-jpeg_quality = 90
+jpeg_quality = 100
 
 while True:  # send images as stream until Ctrl-C
     image = picam.read()
