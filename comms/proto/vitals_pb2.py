@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0cvitals.proto\x12\x0cwallu.vitals\"!\n\x06Vitals\x12\x17\n\x0f\x62\x61ttery_voltage\x18\x01 \x01(\x05\x62\x06proto3'
+  serialized_pb=b'\n\x0cvitals.proto\x12\x0cwallu.vitals\"2\n\x06Vitals\x12\x17\n\x0f\x62\x61ttery_voltage\x18\x01 \x01(\x05\x12\x0f\n\x07payload\x18\x02 \x01(\tb\x06proto3'
 )
 
 
@@ -40,6 +40,13 @@ _VITALS = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='payload', full_name='wallu.vitals.Vitals.payload', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -53,7 +60,7 @@ _VITALS = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=30,
-  serialized_end=63,
+  serialized_end=80,
 )
 
 DESCRIPTOR.message_types_by_name['Vitals'] = _VITALS

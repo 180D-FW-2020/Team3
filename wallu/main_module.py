@@ -83,12 +83,17 @@ def mqtt_callback(client, userdata, message):
 
 def generate_vitals_message(last_message):
     proto_msg = vitals_pb2.Vitals()
-    proto_msg.battery_voltage = int(last_message)
+
+    parsed = last_message.split("-")
+    
+    proto_msg.battery_voltage = int(parsed[0])
+    proto_msg.payload = parsed[1]
     return proto_msg
 
 # PySerial setup
 serial_interface = SerialInterface("/dev/ttyUSB0")
 serial_thread = threading.Thread(target=serial_interface.read_from_port)
+serial_thread.start()
 
 # MQTT setup
 mqtt_id = "wallu"
@@ -104,4 +109,5 @@ while not mqtt_manager.handshake("laptop"):
 while True:
     if "VIT" in serial_interface.stack:
         vitals_proto = generate_vitals_message(serial_interface.stack.pop("VIT"))
+        print("Sending vitals!")
         mqtt_manager.send_message("vitals", vitals_proto.SerializeToString())

@@ -7,6 +7,7 @@ import imagezmq
 #import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.proto import motor_requests_pb2
+from comms.proto import vitals_pb2
 import time
 import threading
 import pose_detect
@@ -26,7 +27,7 @@ class HudData:
     def __init__(self):
         self.battery_level = -1
         self.speed = 0
-        self.throttle = 100
+        self.throttle = 0
         self.throttle_dir = ""
         self.range_finder = "Out of Range"
         self.payload = "Locked"
@@ -38,7 +39,7 @@ def overlay_text(image, text, font_scale, bottom_left, thickness=2):
                 bottom_left,
                 cv2.FONT_HERSHEY_COMPLEX_SMALL,
                 font_scale,
-                (0, 0, 0),
+                (60, 226, 69),
                 thickness, 1)
 
 
@@ -82,6 +83,12 @@ def mqtt_callback(client, userdata, message):
             hud_data.unlock = 0
             hud_data.unlock_timer = time.time()
 
+    if parsed_topic == "vitals":
+        vitals = vitals_pb2.Vitals()
+        vitals.ParseFromString(payload)
+        hud_data.battery_level = str(vitals.battery_voltage)[:-1] + "." + str(vitals.battery_voltage)[-1]
+        if vitals.payload == "L":
+            hud_data.payload = "Locked"
 
 
 
@@ -93,7 +100,7 @@ hud_data = HudData()
 
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "wheel"]
-mqtt_topics = ["motor_requests"]
+mqtt_topics = ["motor_requests", "storage_control", "vitals"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
@@ -123,10 +130,12 @@ while True:
     image = cv2.resize(image, (1920,1080))
 
     if hud_data.unlock == 0:
+        print(time.time() - hud_data.unlock_timer)
         if time.time() - hud_data.unlock_timer > 20:
             # Unlock time out
             print("Unlock sequence timed out...")
             mqtt_manager.send_message("storage_control", "unlock2")
+            hud_data.payload = "Locked"
             hud_data.unlock = -1
 
         image, unlock_detected = pose_detect.unlock_pose(image)
@@ -134,7 +143,7 @@ while True:
             print("Correct passcode...")
             mqtt_manager.send_message("storage_control", "unlock1")
             hud_data.unlock = 1
-            hud_data.payload = "Unlocked."
+            hud_data.payload = "Unlocked"
         
 
     add_text_overlays(image, hud_data)

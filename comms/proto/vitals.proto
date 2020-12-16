@@ -6,4 +6,5 @@ package wallu.vitals;
 
 message Vitals {
     int32 battery_voltage = 1;
+    string payload = 2;
 }
