@@ -72,13 +72,13 @@ void Motor::set_throttle(int pwm_value, MotorDirection dir)
     if (ramp())
         if (bounded_pwm - m_pwm > 0) // increasing
         {
-            m_pwm += 15;
+            m_pwm += 50;
             if (m_pwm > bounded_pwm)
                 m_pwm = bounded_pwm;
         }
         else if (bounded_pwm - m_pwm < 0) //decreasing
         {
-            m_pwm -= 45;
+            m_pwm -= 90;
             if (m_pwm < bounded_pwm)
                 m_pwm = bounded_pwm;
         }
@@ -98,7 +98,7 @@ int Motor::get_pwm()
 
 bool Motor::ramp()
 {
-    unsigned long range = map(m_pwm, 0, 255, 80, 0);
+    unsigned long range = map(m_pwm, 0, 255, 40, 0);
     if ((millis() - m_timer) > range)
     {
         m_timer = millis();

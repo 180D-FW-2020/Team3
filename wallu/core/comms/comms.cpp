@@ -23,10 +23,14 @@ void SerialComms::set_flag(flag flag, bool state)
 void SerialComms::process_request()
 {
     char atoi_buff[2];
-    if (m_com_buff_count == 1)
+    if (m_com_buff_count == 2)
     {
-        if (m_com_buff[0] == 'u') // unlock
-            m_flags->set_flag(UNLOCK, true);
+        if (m_com_buff[1] == '0')
+            m_flags->set_flag(UNLOCK0, true);
+        if (m_com_buff[1] == '1') // unlock
+            m_flags->set_flag(UNLOCK1, true);
+        if (m_com_buff[1] == '2')
+            m_flags->set_flag(UNLOCK2, true);
     }
     // Servo commands S_ _ _ (angle)
     else if (m_com_buff_count == 4)
@@ -142,8 +146,14 @@ int Flags::set_flag(flag flag, bool state)
     case MOTOR:
         m_motor_request = state;
         break;
-    case UNLOCK:
-        m_unlock_request = state;
+    case UNLOCK0:
+        m_unlock0_request = state;
+        break;
+    case UNLOCK1:
+        m_unlock1_request = state;
+        break;
+    case UNLOCK2:
+        m_unlock2_request = state;
         break;
     case CAMERA:
         m_cam_servo_request = state;
@@ -158,8 +168,14 @@ int Flags::check_flag(flag flag)
     case MOTOR:
         return m_motor_request;
         break;
-    case UNLOCK:
-        return m_unlock_request;
+    case UNLOCK0:
+        return m_unlock0_request;
+        break;
+    case UNLOCK1:
+        return m_unlock1_request;
+        break;
+    case UNLOCK2:
+        return m_unlock2_request;
         break;
     case CAMERA:
         return m_cam_servo_request;

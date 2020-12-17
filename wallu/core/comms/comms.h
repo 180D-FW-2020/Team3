@@ -2,9 +2,11 @@
 #include "constants.h"
 enum flag
 {
-    UNLOCK,
+    UNLOCK0,
+    UNLOCK1,
     MOTOR,
-    CAMERA
+    CAMERA,
+    UNLOCK2
 };
 
 class Flags;
@@ -55,7 +57,9 @@ public:
     int check_flag(flag flag);
 
 private:
-    bool m_unlock_request = false;
+    bool m_unlock0_request = false;
+    bool m_unlock1_request = false;
     bool m_motor_request = false;
     bool m_cam_servo_request = false;
+    bool m_unlock2_request = false;
 };
