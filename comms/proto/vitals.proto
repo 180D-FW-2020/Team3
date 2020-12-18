@@ -1,0 +1,10 @@
+// Make sure to run protoc-3 after changing!
+
+syntax = "proto3";
+
+package wallu.vitals;
+
+message Vitals {
+    int32 battery_voltage = 1;
+    string payload = 2;
+}

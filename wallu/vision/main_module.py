@@ -6,19 +6,15 @@ import socket
 import time
 from imutils.video import WebcamVideoStream
 import imagezmq
-import argparse
 from comms.mqtt import interface as mqtt_interface
 import time
 import cv2
 import imutils
 
-ap = argparse.ArgumentParser()
-ap.add_argument("-s", "--server-ip", required=True,
-                help="ip address of the server to which the client will connect")
-args = vars(ap.parse_args())
+SERVER_IP = "192.168.1.206"
 
 sender = imagezmq.ImageSender(connect_to="tcp://{}:5555".format(
-    args["server_ip"]))
+    SERVER_IP))
 
 def mqtt_callback(client, userdata, message):
     # Print all messages
@@ -37,14 +33,15 @@ mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
 mqtt_manager.start_reading()
 
+print("Opening connection to Main Controller...")
 while not mqtt_manager.handshake("laptop"):
     time.sleep(0.5)
-
+print("Connected to Main Controller.")
 
 rpi_name = socket.gethostname()  # send RPi hostname with each image
 picam = WebcamVideoStream(src=0).start()
 #time.sleep(2.0)  # allow camera sensor to warm up
-jpeg_quality = 90
+jpeg_quality = 70
 
 while True:  # send images as stream until Ctrl-C
     image = picam.read()

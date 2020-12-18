@@ -391,6 +391,7 @@ def start_compute(values):
         elif (calibrating == 0):
             #if(gyroZangle  < right_upperbound):
             values["steering_angle"] = int(kalmanX)
+            '''
             if (kalmanX < left_upperbound):
                 print("Turning completely left")
                 #elif (gyroZangle < veryright_upperbound):
@@ -410,6 +411,7 @@ def start_compute(values):
                 print("Turning mostly right")
             else:
                 print("Turning completely right")
+            '''
             if (GPIO.input(10) == GPIO.HIGH): # press button connected to pin 10 if want to recalibrate steady state of steering wheel
                 print("Button was pushed!\n")
                 calibrating = 1 #will go into first state of calibration
