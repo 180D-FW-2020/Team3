@@ -1,6 +1,6 @@
 #pragma once
 // Pin definitions
-#define BATTERY_MONITOR_PIN A0
+#define BATTERY_MONITOR_PIN A7
 #define LEFT_RPM_PIN 12
 #define RIGHT_RPM_PIN 13
 #define MOTOR_R_PWM 3
@@ -13,10 +13,10 @@
 #define CAMERA_SERVO_PIN 5
 #define LOCK_SENSOR_PIN 2
 #define RANGE_TRIG_PIN 6
-#define RANGE_ECHO_PIN 4
-#define RED_LED_EN_PIN A5
-#define GREEN_LED_EN_PIN A6
-#define BLUE_LED_EN_PIN A7
+#define RANGE_ECHO_PIN A7
+#define RED_LED_EN_PIN A0
+#define GREEN_LED_EN_PIN A5
+#define BLUE_LED_EN_PIN 4
 #define RESERVED_1 D8
 #define RESERVED_2 D7
 #define RESERVED_3 D5

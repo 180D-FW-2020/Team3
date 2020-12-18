@@ -7,7 +7,7 @@ MotorControl::MotorControl()
 {
     m_left_motor = new Motor(MOTOR_L_PWM, MOTOR_L_IN1, MOTOR_L_IN2);
     m_right_motor = new Motor(MOTOR_R_PWM, MOTOR_R_IN1, MOTOR_R_IN2);
-    MotorDirection m_current_dir = FORWARD;
+    MotorDirection m_current_dir = STOP;
     m_angle = 0;
     m_throttle = 0;
     m_stationary = true;
@@ -33,7 +33,7 @@ int MotorControl::process_request(MotorDirection req_dir, int req_throttle, int 
 
 int MotorControl::perform_movement(MotorDirection dir, int throttle, int angle)
 {
-    throttle = map(throttle, 0, 100, 0, 255);
+    throttle = map(throttle, 0, 100, 0, 200);
     if (dir == BACKWARD)
     {
         //Run normally
@@ -42,13 +42,13 @@ int MotorControl::perform_movement(MotorDirection dir, int throttle, int angle)
     }
     else if (dir == FORWARD)
     { // if it's forward, we need to account for turning
-        if (throttle < 5)
+        if (throttle < 20)
         {
             throttle = 0;
         }
-        else if (throttle < 20)
+        else if (throttle < 50)
         {
-            throttle = 20;
+            throttle = 50;
         }
         int percentage = map(abs(angle), 0, 90, 0, 100);
         float reduction = 100.0 - (float)percentage;
