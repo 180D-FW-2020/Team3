@@ -60,6 +60,7 @@ class MqttInterface:
         if self.alpha:
             self.subscribe("pulse")
         else:
+            self.subscribe("runtime_config")
             pulse_thread = threading.Thread(target=self.pulse_forever)
             pulse_thread.start()
 

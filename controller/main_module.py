@@ -116,8 +116,11 @@ while True:
     if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
         # not ready for normal operation
         print("Waiting for all devices to come online...")
+        mqtt_manager.send_message("runtime_config", "0")
         time.sleep(0.5)
         continue
+    else:
+        mqtt_manager.send_message("runtime_config", "1")
 
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
