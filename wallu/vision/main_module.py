@@ -20,7 +20,6 @@ def mqtt_callback(client, userdata, message):
     # Print all messages
     payload = message.payload.decode("utf-8")
     topic = message.topic
-    mqtt_manager.pulse_check(topic, payload)
 
     parsed_topic = message.topic.split('/')[-1]
     if parsed_topic == "runtime_config":

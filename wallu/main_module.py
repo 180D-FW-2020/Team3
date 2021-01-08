@@ -57,7 +57,6 @@ def mqtt_callback(client, userdata, message):
         decoded_payload = payload.decode("utf-8")
     except:
         pass
-    mqtt_manager.pulse_check(topic, decoded_payload)
 
     parsed_topic = topic.split('/')[-1]
 
