@@ -17,7 +17,8 @@ sender = imagezmq.ImageSender(connect_to="tcp://{}:5555".format(
     SERVER_IP))
 
 def mqtt_callback(client, userdata, message):
-    # Print all messages
+    global runtime_config
+    
     payload = message.payload.decode("utf-8")
     topic = message.topic
 
@@ -37,6 +38,7 @@ mqtt_id = "vision"
 mqtt_targets = ["laptop"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
+runtime_config = 0
 mqtt_manager.start_reading()
 
 # First connect to Controller Main
