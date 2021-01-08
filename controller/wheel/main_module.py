@@ -17,8 +17,10 @@ def mqtt_callback(client, userdata, message):
     parsed_topic = message.topic.split('/')[-1]
     if parsed_topic == "runtime_config":
         try:
-            runtime_config = int(payload.decode("utf-8"))
-            print("Set runtime config to " + str(runtime_config))
+            new_config = int(payload.decode("utf-8"))
+            if new_config != runtime_config:
+                runtime_config = new_config
+                print("Set runtime config to " + str(runtime_config))
         except:
             print("Could not parse runtime config, resetting to standby.")
             runtime_config = 0
