@@ -16,6 +16,7 @@ import subprocess
 import select
 
 kUnlockTimer = 20
+millis = lambda: int(round(time.time() * 1000))
 
 class Coord:
     def __init__(self, y, x):
@@ -59,15 +60,17 @@ def add_text_overlays(image, hud):
 
 def mqtt_callback(client, userdata, message):
     payload = message.payload
-    topic = message.topic
     decoded_payload = ""
     try:
         decoded_payload = payload.decode("utf-8")
     except:
         pass
-    mqtt_manager.pulse_check(topic, decoded_payload)
 
-    parsed_topic = topic.split('/')[-1]
+    parsed_topic = message.topic.split('/')[-1]
+
+    if parsed_topic == "pulse":
+        mqtt_manager.register_pulse(decoded_payload)
+
     if parsed_topic == "motor_requests":
         motor_request = motor_requests_pb2.MotorRequest()
         motor_request.ParseFromString(payload)
@@ -101,30 +104,24 @@ hud_data = HudData()
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "wheel"]
 mqtt_topics = ["motor_requests", "storage_control", "vitals"]
-mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
+mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
-
-# First connect to Wheel Main Pi
-print("Opening connection to Steering Wheel Main...")
-while not mqtt_manager.handshake("wheel"):
-    time.sleep(0.5)
-
-# Then connect to WALL-U Main Pi
-print("Opening connection to WALL-U Main...")
-while not mqtt_manager.handshake("wallu"):
-    time.sleep(0.5)
 
 #thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 #thread.start()
 
-# Then connect to WALL-U Vision Pi
-print("Opening connection to WALL-U Vision...")
-while not mqtt_manager.handshake("vision"):
-    time.sleep(0.5)
-
-
 image_hub = imagezmq.ImageHub()
 while True:
+
+    if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
+        # not ready for normal operation
+        print("Waiting for all devices to come online...")
+        mqtt_manager.send_message("runtime_config", "0")
+        time.sleep(0.5)
+        continue
+    else:
+        mqtt_manager.send_message("runtime_config", "1")
+
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
     image = cv2.resize(image, (1920,1080))

@@ -49,7 +49,8 @@ def write_motor_request(request):
     serial_interface.write_to_port(req)
 
 def mqtt_callback(client, userdata, message):
-    # Print all messages
+    global runtime_config
+    
     payload = message.payload
     topic = message.topic
     decoded_payload = ""
@@ -57,9 +58,19 @@ def mqtt_callback(client, userdata, message):
         decoded_payload = payload.decode("utf-8")
     except:
         pass
-    mqtt_manager.pulse_check(topic, decoded_payload)
 
     parsed_topic = topic.split('/')[-1]
+
+    if parsed_topic == "runtime_config":
+        try:
+            new_config = int(payload.decode("utf-8"))
+            if new_config != runtime_config:
+                runtime_config = new_config
+                print("Set runtime config to " + str(runtime_config))
+        except:
+            print("Could not parse runtime config, resetting to standby.")
+            runtime_config = 0
+
     if parsed_topic == "motor_requests":
         motor_request = motor_requests_pb2.MotorRequest()
         motor_request.ParseFromString(payload)
@@ -100,10 +111,12 @@ mqtt_id = "wallu"
 mqtt_targets = ["laptop"]
 mqtt_topics = ["motor_requests", "storage_control"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
+runtime_config = 0
 mqtt_manager.start_reading()
 
-print("Opening connection to Controller Main...")
-while not mqtt_manager.handshake("laptop"):
+# First connect to Controller Main
+while runtime_config == 0:
+    print("Waiting for instructions from main controller...")
     time.sleep(0.5)
 
 while True:

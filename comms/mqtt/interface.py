@@ -4,10 +4,14 @@ To start broker, run:
 '''
 
 import paho.mqtt.client as mqtt
+import threading
+import time
 
 TOPIC_PREFIX = "ece180d/team3/wallu/"
 MQTT_QOS = 1
+PULSE_PERIOD = 250
 
+millis = lambda: int(round(time.time() * 1000))
 
 def on_disconnect(client, userdata, rc):
     # Disconnect callback
@@ -24,16 +28,16 @@ def default_callback(client, userdata, message):
 
 
 class MqttInterface:
-    def __init__(self, id, targets, topics, callback=0):
+    def __init__(self, id, targets, topics, callback=0, alpha=False):
         self.id = id
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.on_connect
         self.mqtt_client.on_disconnect = on_disconnect
-
         self.targets = targets
+        self.alpha = alpha
+        self.last_pulse = 0
+
         self.topics = topics
-        self.subscribed_topics = []
-        self.connected_targets = []
         self.pulses = {}
 
         if callback == 0:
@@ -50,18 +54,19 @@ class MqttInterface:
 
         print("Connected to MQTT broker.")
 
-        for target in self.targets:
-            target_topic = "pulse_" + str(target)
-            self.subscribe(target_topic)
-
         for topic in self.topics:
             self.subscribe(topic)
-            
+
+        if self.alpha:
+            self.subscribe("pulse")
+        else:
+            self.subscribe("runtime_config")
+            pulse_thread = threading.Thread(target=self.pulse_forever)
+            pulse_thread.start()
 
     def subscribe(self, topic):
         full_topic = TOPIC_PREFIX + str(topic)
         self.mqtt_client.subscribe(full_topic, qos=MQTT_QOS)
-        self.subscribed_topics.append(topic)
 
     def set_callback(self, callback):
         self.mqtt_client.on_message = callback
@@ -77,23 +82,20 @@ class MqttInterface:
         self.mqtt_client.loop_stop()
         self.mqtt_client.disconnect()
 
-    def pulse_check(self, topic, payload):
-        pulse_split = topic.split("pulse_")
-        if len(pulse_split) == 2:
-            # Received pulse
-            target = pulse_split[1]
-            if payload == "init" and not target in self.pulses:
-                self.pulses[target] = "init"
+    def register_pulse(self, target):
+        if target in self.targets:
+            self.pulses[target] = millis()
+            print("Registered pulse from: " + target)
+        else:
+            print("Received pulse from unrecognized target: " + target)
 
-    def handshake(self, target):
+    def target_check(self, target):
+        return (target in self.pulses) and (millis() - self.pulses[target] < 1.5*PULSE_PERIOD)
+
+    def pulse_forever(self):
         # Send init message
-        self.send_message("pulse_" + self.id, "init")
-
-        # Make sure not already connected to target
-        if target in self.connected_targets:
-            return True
-
-        if target in self.pulses and self.pulses[target] == "init":
-            print("Connected to " + str(target))
-            self.connected_targets.append(target)
-
+        while True:
+            time_elapsed = millis() - self.last_pulse
+            if  time_elapsed >= PULSE_PERIOD:
+                self.send_message("pulse", self.id)
+                self.last_pulse = millis()

@@ -10,15 +10,21 @@ import threading
 import time
 
 def mqtt_callback(client, userdata, message):
-    # Print all messages
+    global runtime_config
+
     payload = message.payload
     topic = message.topic
-    mqtt_manager.pulse_check(topic, payload.decode("utf-8"))
 
-    '''
-    print('Received message: "' + payload +
-          '" on topic "' + topic + '" with QoS ' + str(message.qos))
-    '''
+    parsed_topic = message.topic.split('/')[-1]
+    if parsed_topic == "runtime_config":
+        try:
+            new_config = int(payload.decode("utf-8"))
+            if new_config != runtime_config:
+                runtime_config = new_config
+                print("Set runtime config to " + str(runtime_config))
+        except:
+            print("Could not parse runtime config, resetting to standby.")
+            runtime_config = 0
 
 def generate_motor_request(joy_value, angle_value):
     proto_request = motor_requests_pb2.MotorRequest()
@@ -45,11 +51,12 @@ mqtt_id = "wheel"
 mqtt_targets = ["laptop"]
 mqtt_topics = []
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
+runtime_config = 0
 mqtt_manager.start_reading()
 
 # First connect to Controller Main
-print("Opening connection to Controller Main...")
-while not mqtt_manager.handshake("laptop"):
+while runtime_config == 0:
+    print("Waiting for instructions from main controller...")
     time.sleep(0.5)
 
 serial_interface = SerialInterface("/dev/ttyUSB0")
