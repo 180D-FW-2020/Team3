@@ -14,6 +14,7 @@ import pose_detect
 import numpy as np
 import subprocess
 import select
+import socket
 
 kUnlockTimer = 20
 millis = lambda: int(round(time.time() * 1000))
@@ -102,7 +103,8 @@ def voice_callback():
 hud_data = HudData()
 
 mqtt_id = "laptop"
-mqtt_targets = ["vision", "wallu", "wheel"]
+mqtt_targets = ["vision", "wallu", "cannon"]
+mqtt_targets = ["vision", "cannon"]
 mqtt_topics = ["motor_requests", "storage_control", "vitals"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
@@ -110,7 +112,18 @@ mqtt_manager.start_reading()
 #thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 #thread.start()
 
+# Set up socket for video streaming
+REMOTE_IP = "wallu.ddns.net"
+LOCAL_IP = "192.168.1.206"
+LOCAL_PORT = 20001
+BUFFER_SIZE = 10240
+
+udp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+udp_socket.settimeout(0)
+udp_socket.bind((LOCAL_IP, LOCAL_PORT))
+
 image_hub = imagezmq.ImageHub()
+
 while True:
 
     if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
@@ -123,8 +136,18 @@ while True:
         mqtt_manager.send_message("runtime_config", "1")
 
     rpi_name, jpg_buffer = image_hub.recv_jpg()
+    print(type(jpg_buffer))
+    print(len(jpg_buffer))
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
     image = cv2.resize(image, (1920,1080))
+
+    try:
+        bytes_addr_pair = udp_socket.recvfrom(BUFFER_SIZE)
+        print(bytes_addr_pair[0])
+        client_address = bytes_addr_pair[1]
+        udp_socket.sendto(jpg_buffer, client_address)
+    except:
+        print("rip")
 
     if hud_data.unlock == 0:
         if time.time() - hud_data.unlock_timer > 20:
