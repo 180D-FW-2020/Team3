@@ -33,6 +33,7 @@ runtime_config = 0
 mqtt_manager.start_reading()
 
 SERVER_INFO = ("wallu.ddns.net", 20001)
+SERVER_INFO = ("172.91.77.126", 20001)
 BUFFER_SIZE = 51200
 
 udp_client = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)

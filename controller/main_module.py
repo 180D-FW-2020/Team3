@@ -113,7 +113,6 @@ mqtt_manager.start_reading()
 #thread.start()
 
 # Set up socket for video streaming
-REMOTE_IP = "wallu.ddns.net"
 LOCAL_IP = "192.168.1.206"
 LOCAL_PORT = 20001
 BUFFER_SIZE = 10240
@@ -147,7 +146,7 @@ while True:
         client_address = bytes_addr_pair[1]
         udp_socket.sendto(jpg_buffer, client_address)
     except:
-        print("rip")
+        print(sys.exc_info()[0])
 
     if hud_data.unlock == 0:
         if time.time() - hud_data.unlock_timer > 20:
