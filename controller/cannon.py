@@ -32,12 +32,13 @@ mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, to
 runtime_config = 0
 mqtt_manager.start_reading()
 
-SERVER_INFO = ("wallu.ddns.net", 20001)
-SERVER_INFO = ("172.91.77.126", 20001)
+#SERVER_INFO = ("wallu.ddns.net", 50000)
+SERVER_INFO = ("172.91.77.126", 50000)
+#SERVER_INFO = ("192.168.1.206", 50000)
 BUFFER_SIZE = 51200
 
-udp_client = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-udp_msg = str.encode("eve")
+tcp_client = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+tcp_client.connect(SERVER_INFO)
 
 # First connect to Controller Main
 while runtime_config == 0:
@@ -46,8 +47,8 @@ while runtime_config == 0:
 
 while True:
     
-    udp_client.sendto(udp_msg, SERVER_INFO)
-    jpg_buffer = udp_client.recvfrom(BUFFER_SIZE)[0]
+    
+    jpg_buffer = tcp_client.recv(BUFFER_SIZE)
 
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
     image = cv2.resize(image, (1920,1080))

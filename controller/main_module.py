@@ -112,19 +112,29 @@ mqtt_manager.start_reading()
 #thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 #thread.start()
 
+def accept_upd_conns():
+    try:
+        conn, client_addr = tcp_socket.accept()
+        tcp_conns.append(conn)
+        print("New connection from " + str(client_addr))
+    except:
+        pass
+
 # Set up socket for video streaming
-LOCAL_IP = "192.168.1.206"
-LOCAL_PORT = 20001
+LOCAL_IP = "0.0.0.0"
+LOCAL_PORT = 50000
 BUFFER_SIZE = 10240
 
-udp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-udp_socket.settimeout(0)
-udp_socket.bind((LOCAL_IP, LOCAL_PORT))
+tcp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+tcp_socket.setblocking(0)
+tcp_socket.bind((LOCAL_IP, LOCAL_PORT))
+tcp_socket.listen(5)
+tcp_conns = []
 
 image_hub = imagezmq.ImageHub()
 
 while True:
-
+    accept_upd_conns()
     if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
         # not ready for normal operation
         print("Waiting for all devices to come online...")
@@ -135,18 +145,15 @@ while True:
         mqtt_manager.send_message("runtime_config", "1")
 
     rpi_name, jpg_buffer = image_hub.recv_jpg()
-    print(type(jpg_buffer))
-    print(len(jpg_buffer))
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
     image = cv2.resize(image, (1920,1080))
 
-    try:
-        bytes_addr_pair = udp_socket.recvfrom(BUFFER_SIZE)
-        print(bytes_addr_pair[0])
-        client_address = bytes_addr_pair[1]
-        udp_socket.sendto(jpg_buffer, client_address)
-    except:
-        print(sys.exc_info()[0])
+    for conn in tcp_conns:
+        try:
+            conn.sendall(jpg_buffer)
+        except:
+            print("bad write :(")
+            print(sys.exc_info()[0])
 
     if hud_data.unlock == 0:
         if time.time() - hud_data.unlock_timer > 20:
