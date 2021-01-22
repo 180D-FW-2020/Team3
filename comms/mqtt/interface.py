@@ -28,7 +28,7 @@ def default_callback(client, userdata, message):
 
 
 class MqttInterface:
-    def __init__(self, id, targets, topics, callback=0, alpha=False):
+    def __init__(self, id, targets, topics, callback=0, alpha=False, local=True):
         self.id = id
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.on_connect
@@ -45,7 +45,10 @@ class MqttInterface:
         self.set_callback(callback)
 
         # Connect to broker
-        self.mqtt_client.connect_async('192.168.1.206')
+        if local:
+            self.mqtt_client.connect_async('192.168.1.206')
+        else:
+            self.mqtt_client.connect_async('wallu.ddns.net')
 
     def on_connect(self, client, userdata, flags, rc):
         # Connection request callback
