@@ -2,12 +2,16 @@
 #include <motor_control.h>
 #include <comms.h>
 #include <ctype.h>
+#include <shooter.h>
 #include <Servo.h>
 
 // WALL-U
 MotorControl motor_control = MotorControl();
+Shooter shooter = Shooter(SHOOTER_SERVO_PIN, SHOOTER_EN_PIN, 0);
 SerialComms wallu_comms = SerialComms();
 bool stationary = true;
+bool shooter_state = false;
+bool ready_to_shoot = false;
 
 Servo lock_servo;
 Servo camera_servo;
@@ -128,7 +132,7 @@ void loop()
   wallu_comms.check_for_request();
 
   // Handle motor requests
-  if (wallu_comms.check_flag(MOTOR) && lock_status && !disable)
+  if (wallu_comms.check_flag(MOTOR) && lock_status && !disable && !shooter_state)
   {
     int check = motor_control.process_request(wallu_comms.get_req_dir(), wallu_comms.get_req_throttle(), wallu_comms.get_req_angle());
   }
@@ -139,6 +143,39 @@ void loop()
     stationary = true;
   else
     stationary = false;
+
+
+  // ===============
+  // Shooter function
+  if (wallu_comms.check_flag(SHOOTER_TOGGLE))
+  {
+    shooter_state = !shooter_state;
+    wallu_comms.set_flag(SHOOTER_TOGGLE, false);
+  }
+
+  if (shooter_state) 
+  {
+    if (!shooter.get_motor_state())
+      shooter.toggle_motor();
+    ready_to_shoot = true;
+  }
+  else
+  {
+    if (shooter.get_motor_state())
+      shooter.toggle_motor();
+    ready_to_shoot = false;
+  }
+  
+  if (wallu_comms.check_flag(SHOOT))
+  {
+    if (shooter_state && ready_to_shoot)
+      shooter.shoot();
+  }
+
+  // ===============
+
+
+
 
   // Handle servo requests
   if (wallu_comms.check_flag(CAMERA))
@@ -161,7 +198,6 @@ void loop()
 
   if (wallu_comms.check_flag(UNLOCK2))
   {
-    Serial.println("SHITITHWOIEHTIOWHEOITHWOEHTHWIOEHT");
     wallu_comms.set_flag(UNLOCK2, false);
     disable = 0;
     set_eye_pattern("BLUE");

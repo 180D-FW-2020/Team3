@@ -18,8 +18,8 @@
 #define GREEN_LED_EN_PIN A5
 #define BLUE_LED_EN_PIN 4
 #define RESERVED_1 D8
-#define RESERVED_2 D7
-#define RESERVED_3 D5
+#define SHOOTER_EN_PIN 7
+#define SHOOTER_SERVO_PIN 5
 // Hardware Constants
 #define VM 15.6
 #define BATT_MIN 15.1

@@ -6,7 +6,9 @@ enum flag
     UNLOCK1,
     MOTOR,
     CAMERA,
-    UNLOCK2
+    UNLOCK2,
+    SHOOT,
+    SHOOTER_TOGGLE
 };
 
 class Flags;
@@ -62,4 +64,6 @@ private:
     bool m_motor_request = false;
     bool m_cam_servo_request = false;
     bool m_unlock2_request = false;
+    bool m_shoot_request = false;
+    bool m_shooter_toggle_request = false;
 };
