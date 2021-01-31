@@ -7,7 +7,6 @@
 
 // WALL-U
 MotorControl motor_control = MotorControl();
-Shooter shooter = Shooter(SHOOTER_SERVO_PIN, SHOOTER_EN_PIN, 0);
 SerialComms wallu_comms = SerialComms();
 bool stationary = true;
 bool shooter_state = false;
@@ -143,40 +142,6 @@ void loop()
     stationary = true;
   else
     stationary = false;
-
-
-  // ===============
-  // Shooter function
-  if (wallu_comms.check_flag(SHOOTER_TOGGLE))
-  {
-    shooter_state = !shooter_state;
-    wallu_comms.set_flag(SHOOTER_TOGGLE, false);
-  }
-
-  if (shooter_state) 
-  {
-    if (!shooter.get_motor_state())
-      shooter.toggle_motor();
-    ready_to_shoot = true;
-  }
-  else
-  {
-    if (shooter.get_motor_state())
-      shooter.toggle_motor();
-    ready_to_shoot = false;
-  }
-  
-  if (wallu_comms.check_flag(SHOOT))
-  {
-    if (shooter_state && ready_to_shoot)
-      shooter.shoot();
-  }
-
-  // ===============
-
-
-
-
   // Handle servo requests
   if (wallu_comms.check_flag(CAMERA))
   {
