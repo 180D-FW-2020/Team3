@@ -41,7 +41,7 @@ class StreamClient:
 class StreamServer:
     def __init__(self, local_info, max_conns=5):
         self.tcp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-        #self.tcp_socket.setblocking(0)
+        self.tcp_socket.setblocking(0)
         self.tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.tcp_socket.bind(local_info)
         self.tcp_socket.listen(max_conns)

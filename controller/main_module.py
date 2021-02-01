@@ -9,6 +9,8 @@ from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
 from comms.proto import motor_requests_pb2
 from comms.proto import vitals_pb2
+from comms.proto import hud_pb2
+from stream_utils import add_text_overlays, overlay_text
 import time
 import threading
 import pose_detect
@@ -24,41 +26,6 @@ class Coord:
     def __init__(self, y, x):
         self.y = y
         self.x = x
-
-
-class HudData:
-    def __init__(self):
-        self.battery_level = -1
-        self.speed = 0
-        self.throttle = 0
-        self.throttle_dir = ""
-        self.range_finder = "Out of Range"
-        self.payload = "Locked"
-        self.unlock = -1
-        self.unlock_timer = -1
-
-def overlay_text(image, text, font_scale, bottom_left, thickness=2):
-    cv2.putText(image, text,
-                bottom_left,
-                cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                font_scale,
-                (60, 226, 69),
-                thickness, 1)
-
-
-def add_text_overlays(image, hud):
-
-    kOffsetX = 20
-    kOffsetY = 20
-
-    overlay_text(image, "System Overview", 2,
-                 (kOffsetX, kOffsetY+150), 3)
-    overlay_text(image, "- Battery Level: " + str(hud.battery_level) + "V", 1.5,
-                 (kOffsetX, kOffsetY+200))
-    overlay_text(image, "- Throttle: " + hud_data.throttle_dir + str(hud.throttle) + "%", 1.5,
-                 (kOffsetX, kOffsetY+240))
-    overlay_text(image, "- Payload Compartment: " + hud.payload, 1.5,
-                 (kOffsetX, kOffsetY+280))
 
 def mqtt_callback(client, userdata, message):
     payload = message.payload
@@ -101,7 +68,7 @@ def voice_callback():
     print("Sending unlock command")
     mqtt_manager.send_message("storage_control", "unlock")
 
-hud_data = HudData()
+hud_data = hud_pb2.HudPoint()
 
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "cannon"]
@@ -116,14 +83,6 @@ mqtt_manager.start_reading()
 # Set up socket for video streaming
 LOCAL_IP = "0.0.0.0"
 LOCAL_PORT = 50000
-'''
-tcp_socket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
-tcp_socket.setblocking(0)
-tcp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-tcp_socket.bind((LOCAL_IP, LOCAL_PORT))
-tcp_socket.listen(5)
-tcp_conns = []
-'''
 
 stream_manager = tcp_interface.StreamServer((LOCAL_IP, LOCAL_PORT))
 stream_manager.start()
@@ -163,6 +122,8 @@ while True:
         
 
     add_text_overlays(image, hud_data)
+
+    mqtt_manager.send_message("hud_data", hud_data.SerializeToString())
 
     #cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
     #cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)

@@ -1,0 +1,14 @@
+// Make sure to run protoc-3 after changing!
+
+syntax = "proto3";
+
+package wallu.hud;
+
+message HudPoint {
+    int32 battery_level = 1;
+    int32 throttle = 2;
+    string throttle_dir = 3;
+    string payload = 4;
+    int32 unlock = 5;
+    int32 unlock_timer = 6;
+}
