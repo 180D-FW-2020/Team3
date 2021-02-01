@@ -42,7 +42,7 @@ def mqtt_callback(client, userdata, message):
             # turn off motors
             serial_interface.write_to_port("sof;")
             pass
-        if cannon_cmd.type == 2:
+        if cannon_cmd.type == 1:
             # warm up motors
             serial_interface.write_to_port("son;")
             pass

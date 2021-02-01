@@ -39,15 +39,14 @@ def mqtt_callback(client, userdata, message):
             runtime_config = 0
 
     if parsed_topic == keyboard_mqtt_id:
-        print("Key pressed: " + payload)
         if payload == "w":
             # cannon warmup
             if cannon_status.motor_status == "Idle" and cannon_status.cooldown_timer <= 0:
                 warmup_command = cannon_pb2.CannonCommand()
                 warmup_command.type = 1
                 cannon_status.motor_status = "Warming Up"
-                cannon_status.warmup_timer = time.time()
-                cannon_status.warmup_timer_end = time.time() + cannon_status.warmup_duration
+                cannon_status.warmup_timer = int(time.time())
+                cannon_status.warmup_timer_end = int(time.time()) + cannon_status.warmup_duration
                 mqtt_manager.send_message("cannon_cmd", warmup_command.SerializeToString())
 
         if payload == "s":
@@ -59,20 +58,22 @@ def mqtt_callback(client, userdata, message):
                 cannon_status.warmup_timer_end = -1
                 cannon_status.overheat_timer = -1
                 cannon_status.overheat_timer_end = -1
-                cannon_status.cooldown_duration = 1000
+                cannon_status.cooldown_duration = 1
                 cannon_status.motor_status = "Cooling Down"
-                cannon_status.cooldown_timer = time.time()
-                cannon_status.cooldown_timer_end = time.time() + cannon_status.cooldown_duration
+                cannon_status.cooldown_timer = int(time.time())
+                cannon_status.cooldown_timer_end = int(time.time()) + cannon_status.cooldown_duration
 
                 mqtt_manager.send_message("cannon_cmd", cooldown_command.SerializeToString())
 
         if payload == "space":
             # cannon fire
-            cannon_status.motor_status == "Warmed Up":
+            print("Detected space")
+            if cannon_status.motor_status == "Warmed Up":
                 fire_command = cannon_pb2.CannonCommand()
                 fire_command.type = 3
                 cannon_status.shot_count += 1
                 mqtt_manager.send_message("cannon_cmd", fire_command.SerializeToString())
+                print("Sending fire command!")
 
         if payload == "esc":
             # shutdown
@@ -97,13 +98,13 @@ cannon_status = cannon_pb2.CannonStatus()
 cannon_status.motor_status = "Idle"
 cannon_status.shot_count = 0
 cannon_status.warmup_timer = -1
-cannon_status.warmup_duration = 1000
+cannon_status.warmup_duration = 1
 cannon_status.warmup_timer_end = -1
 cannon_status.cooldown_timer = -1
-cannon_status.cooldown_duration = 1000
+cannon_status.cooldown_duration = 1
 cannon_status.cooldown_timer_end = -1
 cannon_status.overheat_timer = -1
-cannon_status.overheat_duration = 5000
+cannon_status.overheat_duration = 5
 cannon_status.overheat_timer_end = -1
 
 cannon_subprocess = ["python3", "keyboard_controller.py", keyboard_mqtt_id]
@@ -138,31 +139,40 @@ while True:
         print("rip")
         print(sys.exc_info()[0])
         continue
-    
+
     # process cannon state
     if cannon_status.motor_status == "Warming Up":
-        if cannon_status.warmup_timer_end - cannon_status.warmup_timer >= cannon_status.warmup_duration:
+        cannon_status.warmup_timer = int(time.time())
+        if cannon_status.warmup_timer_end - cannon_status.warmup_timer <= 0:
             # Cannon finished warming up
+            print("Cannon warmed up!")
             cannon_status.motor_status = "Warmed Up"
             cannon_status.warmup_timer = -1
             cannon_status.warmup_timer_end = -1
-            cannon_status.overheat_timer = time.time()
-            cannon_status.overheat_timer_end = time.time() + cannon_status.overheat_duration
+            cannon_status.overheat_timer = int(time.time())
+            cannon_status.overheat_timer_end = int(time.time()) + cannon_status.overheat_duration
 
     if cannon_status.motor_status == "Warmed Up":
-        if cannon_status.overheat_timer_end - cannon_status.overheat_timer >= cannon_status.overheat_duration:
+        cannon_status.overheat_timer = int(time.time())
+        if cannon_status.overheat_timer_end - cannon_status.overheat_timer <= 0:
             # Cannon overheated!
+            print("Cannon overheated!")
             cannon_status.motor_status = "Overheated! Cooling Down"
             cannon_status.warmup_timer = -1
             cannon_status.warmup_timer_end = -1
             cannon_status.overheat_timer = -1
             cannon_status.overheat_timer_end = -1
-            cannon_status.cooldown_duration = 5000
-            cannon_status.cooldown_timer = time.time()
-            cannon_status.cooldown_timer_end = time.time() + cannon_status.cooldown_duration
+            cannon_status.cooldown_duration = 5
+            cannon_status.cooldown_timer = int(time.time())
+            cannon_status.cooldown_timer_end = int(time.time()) + cannon_status.cooldown_duration
+            cooldown_command = cannon_pb2.CannonCommand()
+            cooldown_command.type = 2
+            mqtt_manager.send_message("cannon_cmd", cooldown_command.SerializeToString())
+
 
     if cannon_status.motor_status in ["Overheated! Cooling Down", "Cooling Down"]:
-        if cannon_status.cooldown_timer_end - cannon_status.cooldown_timer >= cannon_status.cooldown_duration:
+        cannon_status.cooldown_timer = int(time.time())
+        if cannon_status.cooldown_timer_end - cannon_status.cooldown_timer <= 0:
             cannon_status.motor_status = "Idle"
             cannon_status.cooldown_timer = -1
             cannon_status.cooldown_timer_end = -1
@@ -172,6 +182,6 @@ while True:
     if hud_data:
         add_text_overlays(image, hud_data)
 
-  cv2.imshow("WALLU Stream", image)
+    cv2.imshow("WALLU Stream", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
