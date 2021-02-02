@@ -8,7 +8,8 @@ enum flag
     CAMERA,
     UNLOCK2,
     SHOOT,
-    SHOOTER_TOGGLE
+    SHOOTER_ON,
+    SHOOTER_OFF
 };
 
 class Flags;
@@ -65,5 +66,6 @@ private:
     bool m_cam_servo_request = false;
     bool m_unlock2_request = false;
     bool m_shoot_request = false;
-    bool m_shooter_toggle_request = false;
+    bool m_shooter_on_request = false;
+    bool m_shooter_off_request = false;
 };

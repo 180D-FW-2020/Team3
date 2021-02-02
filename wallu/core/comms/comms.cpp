@@ -31,10 +31,15 @@ void SerialComms::process_request()
             m_flags->set_flag(UNLOCK1, true);
         if (m_com_buff[1] == '2')
             m_flags->set_flag(UNLOCK2, true);
-        if (m_com_buff[1] == 'S')
+    }
+    else if (m_com_buff_count == 3)
+    {
+        if (m_com_buff[2] == 'n')
+            m_flags->set_flag(SHOOTER_ON, true);
+        if (m_com_buff[2] == 'f')
+            m_flags->set_flag(SHOOTER_OFF, true);
+        if (m_com_buff[2] == 'i')
             m_flags->set_flag(SHOOT, true);
-        if (m_com_buff[1] == 'T')
-            m_flags->set_flag(SHOOTER_TOGGLE, true);
     }
     // Servo commands S_ _ _ (angle)
     else if (m_com_buff_count == 4)
@@ -150,8 +155,11 @@ int Flags::set_flag(flag flag, bool state)
     case SHOOT:
         m_shoot_request = state;
         break;
-    case SHOOTER_TOGGLE:
-        m_shooter_toggle_request = state;
+    case SHOOTER_ON:
+        m_shooter_on_request = state;
+        break;
+    case SHOOTER_OFF:
+        m_shooter_off_request = state;
         break;
     case MOTOR:
         m_motor_request = state;
@@ -177,8 +185,13 @@ int Flags::check_flag(flag flag)
     {
     case SHOOT:
         return m_shoot_request;
-    case SHOOTER_TOGGLE:
-        return m_shooter_toggle_request;
+        break;
+    case SHOOTER_ON:
+        return m_shooter_on_request;
+        break;
+    case SHOOTER_OFF:
+        return m_shooter_off_request;
+        break;
     case MOTOR:
         return m_motor_request;
         break;
