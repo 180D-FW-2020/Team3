@@ -2,15 +2,12 @@
 #include <motor_control.h>
 #include <comms.h>
 #include <ctype.h>
-#include <shooter.h>
 #include <Servo.h>
 
 // WALL-U
 MotorControl motor_control = MotorControl();
 SerialComms wallu_comms = SerialComms();
 bool stationary = true;
-bool shooter_state = false;
-bool ready_to_shoot = false;
 
 Servo lock_servo;
 Servo camera_servo;
@@ -131,7 +128,7 @@ void loop()
   wallu_comms.check_for_request();
 
   // Handle motor requests
-  if (wallu_comms.check_flag(MOTOR) && lock_status && !disable && !shooter_state)
+  if (wallu_comms.check_flag(MOTOR) && lock_status && !disable)
   {
     int check = motor_control.process_request(wallu_comms.get_req_dir(), wallu_comms.get_req_throttle(), wallu_comms.get_req_angle());
   }
