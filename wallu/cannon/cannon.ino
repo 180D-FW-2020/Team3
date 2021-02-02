@@ -10,7 +10,6 @@ Servo load_servo;
 
 void shoot(Servo servo) {
   servo.write(1900);
-  Serial.println("WAITING");
   delay(500);
   servo.write(1300);
   delay(1000);
