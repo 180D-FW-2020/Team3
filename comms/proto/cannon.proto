@@ -1,0 +1,35 @@
+// Make sure to run protoc-3 after changing!
+
+syntax = "proto3";
+
+package wallu.hud;
+
+message CannonStatus {
+    string motor_status = 1;
+    int32 shot_count = 2;
+
+    // Warmup timers
+    int32 warmup_timer = 3;
+    int32 warmup_duration = 4;
+    int32 warmup_timer_end = 5;
+
+    // Cooldown timers
+    int32 cooldown_timer = 6;
+    int32 cooldown_duration = 7;
+    int32 cooldown_timer_end = 8;
+
+    // Overheat timers
+    int32 overheat_timer = 9;
+    int32 overheat_duration = 10;
+    int32 overheat_timer_end = 11;
+}
+
+message CannonCommand {
+    enum Type {
+        SHUTDOWN = 0;
+        MOTOR_WARMUP = 1;
+        MOTOR_COOLDOWN = 2;
+        FIRE = 3;
+    }
+    Type type = 1;
+}

@@ -6,14 +6,16 @@ import cv2
 import imagezmq
 #import voice_unlock
 from comms.mqtt import interface as mqtt_interface
-from comms.proto import motor_requests_pb2
-from comms.proto import vitals_pb2
+from comms.tcp_stream import interface as tcp_interface
+from comms.proto import hud_pb2, cannon_pb2, vitals_pb2, motor_requests_pb2
+from stream_utils import add_text_overlays, overlay_text, overlay_prompts, PromptManager
 import time
 import threading
 import pose_detect
 import numpy as np
 import subprocess
 import select
+import socket
 
 kUnlockTimer = 20
 millis = lambda: int(round(time.time() * 1000))
@@ -22,41 +24,6 @@ class Coord:
     def __init__(self, y, x):
         self.y = y
         self.x = x
-
-
-class HudData:
-    def __init__(self):
-        self.battery_level = -1
-        self.speed = 0
-        self.throttle = 0
-        self.throttle_dir = ""
-        self.range_finder = "Out of Range"
-        self.payload = "Locked"
-        self.unlock = -1
-        self.unlock_timer = -1
-
-def overlay_text(image, text, font_scale, bottom_left, thickness=2):
-    cv2.putText(image, text,
-                bottom_left,
-                cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                font_scale,
-                (60, 226, 69),
-                thickness, 1)
-
-
-def add_text_overlays(image, hud):
-
-    kOffsetX = 20
-    kOffsetY = 20
-
-    overlay_text(image, "System Overview", 2,
-                 (kOffsetX, kOffsetY+150), 3)
-    overlay_text(image, "- Battery Level: " + str(hud.battery_level) + "V", 1.5,
-                 (kOffsetX, kOffsetY+200))
-    overlay_text(image, "- Throttle: " + hud_data.throttle_dir + str(hud.throttle) + "%", 1.5,
-                 (kOffsetX, kOffsetY+240))
-    overlay_text(image, "- Payload Compartment: " + hud.payload, 1.5,
-                 (kOffsetX, kOffsetY+280))
 
 def mqtt_callback(client, userdata, message):
     payload = message.payload
@@ -93,26 +60,40 @@ def mqtt_callback(client, userdata, message):
         if vitals.payload == "L" and hud_data.payload == "Unlocked":
             hud_data.payload = "Locked"
 
+    if parsed_topic == "cannon_status":
+        cannon_status.ParseFromString(payload)
 
+    if parsed_topic == "cannon_prompts":
+        prompt_manager.add_prompt(decoded_payload)
 
 def voice_callback():
     print("Sending unlock command")
     mqtt_manager.send_message("storage_control", "unlock")
 
-hud_data = HudData()
+hud_data = hud_pb2.HudPoint()
+cannon_status = cannon_pb2.CannonStatus()
+prompt_manager = PromptManager()
 
 mqtt_id = "laptop"
-mqtt_targets = ["vision", "wallu", "wheel"]
-mqtt_topics = ["motor_requests", "storage_control", "vitals"]
+mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
+mqtt_targets = ["vision", "cannon", "game_master"]
+mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
 
 #thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
 #thread.start()
 
-image_hub = imagezmq.ImageHub()
-while True:
+# Set up socket for video streaming
+LOCAL_IP = "0.0.0.0"
+LOCAL_PORT = 50000
 
+stream_manager = tcp_interface.StreamServer((LOCAL_IP, LOCAL_PORT))
+stream_manager.start()
+
+image_hub = imagezmq.ImageHub()
+
+while True:
     if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
         # not ready for normal operation
         print("Waiting for all devices to come online...")
@@ -125,6 +106,8 @@ while True:
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
     image = cv2.resize(image, (1920,1080))
+
+    stream_manager.send_frame(np.frombuffer(jpg_buffer, dtype='uint8'))
 
     if hud_data.unlock == 0:
         if time.time() - hud_data.unlock_timer > 20:
@@ -142,7 +125,11 @@ while True:
             hud_data.payload = "Unlocked"
         
 
-    add_text_overlays(image, hud_data)
+    add_text_overlays(image, hud_data, cannon_status)
+    prompt_manager.clear_expired_prompts()
+    overlay_prompts(image, prompt_manager.gather_valid_prompts())
+
+    mqtt_manager.send_message("hud_data", hud_data.SerializeToString())
 
     #cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
     #cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
