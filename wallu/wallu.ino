@@ -139,7 +139,6 @@ void loop()
     stationary = true;
   else
     stationary = false;
-
   // Handle servo requests
   if (wallu_comms.check_flag(CAMERA))
   {
@@ -161,7 +160,6 @@ void loop()
 
   if (wallu_comms.check_flag(UNLOCK2))
   {
-    Serial.println("SHITITHWOIEHTIOWHEOITHWOEHTHWIOEHT");
     wallu_comms.set_flag(UNLOCK2, false);
     disable = 0;
     set_eye_pattern("BLUE");
