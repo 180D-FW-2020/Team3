@@ -7,10 +7,8 @@ import imagezmq
 #import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
-from comms.proto import motor_requests_pb2
-from comms.proto import vitals_pb2
-from comms.proto import hud_pb2
-from stream_utils import add_text_overlays, overlay_text
+from comms.proto import hud_pb2, cannon_pb2, vitals_pb2, motor_requests_pb2
+from stream_utils import add_text_overlays, overlay_text, overlay_prompts, PromptManager
 import time
 import threading
 import pose_detect
@@ -62,18 +60,24 @@ def mqtt_callback(client, userdata, message):
         if vitals.payload == "L" and hud_data.payload == "Unlocked":
             hud_data.payload = "Locked"
 
+    if parsed_topic == "cannon_status":
+        cannon_status.ParseFromString(payload)
 
+    if parsed_topic == "cannon_prompts":
+        prompt_manager.add_prompt(decoded_payload)
 
 def voice_callback():
     print("Sending unlock command")
     mqtt_manager.send_message("storage_control", "unlock")
 
 hud_data = hud_pb2.HudPoint()
+cannon_status = cannon_pb2.CannonStatus()
+prompt_manager = PromptManager()
 
 mqtt_id = "laptop"
-mqtt_targets = ["vision", "wallu", "cannon"]
-mqtt_targets = ["vision", "cannon"]
-mqtt_topics = ["motor_requests", "storage_control", "vitals"]
+mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
+mqtt_targets = ["vision", "cannon", "game_master"]
+mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
 
@@ -121,7 +125,9 @@ while True:
             hud_data.payload = "Unlocked"
         
 
-    add_text_overlays(image, hud_data)
+    add_text_overlays(image, hud_data, cannon_status)
+    prompt_manager.clear_expired_prompts()
+    overlay_prompts(image, prompt_manager.gather_valid_prompts())
 
     mqtt_manager.send_message("hud_data", hud_data.SerializeToString())
 

@@ -3,16 +3,18 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import cv2
-import socket
 from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
 from comms.proto import hud_pb2
 from comms.proto import cannon_pb2
-from stream_utils import add_text_overlays, overlay_text
+from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts
 import time
 import numpy as np
 import argparse
 import subprocess
+
+kTimeOffset = time.time()
+millis = lambda: int(round((time.time() - kTimeOffset) * 1000))
 
 def mqtt_callback(client, userdata, message):
     global runtime_config
@@ -45,8 +47,8 @@ def mqtt_callback(client, userdata, message):
                 warmup_command = cannon_pb2.CannonCommand()
                 warmup_command.type = 1
                 cannon_status.motor_status = "Warming Up"
-                cannon_status.warmup_timer = int(time.time())
-                cannon_status.warmup_timer_end = int(time.time()) + cannon_status.warmup_duration
+                cannon_status.warmup_timer = millis()
+                cannon_status.warmup_timer_end = millis() + cannon_status.warmup_duration
                 mqtt_manager.send_message("cannon_cmd", warmup_command.SerializeToString())
 
         if payload == "s":
@@ -58,10 +60,10 @@ def mqtt_callback(client, userdata, message):
                 cannon_status.warmup_timer_end = -1
                 cannon_status.overheat_timer = -1
                 cannon_status.overheat_timer_end = -1
-                cannon_status.cooldown_duration = 1
+                cannon_status.cooldown_duration = 1000
                 cannon_status.motor_status = "Cooling Down"
-                cannon_status.cooldown_timer = int(time.time())
-                cannon_status.cooldown_timer_end = int(time.time()) + cannon_status.cooldown_duration
+                cannon_status.cooldown_timer = millis()
+                cannon_status.cooldown_timer_end = millis() + cannon_status.cooldown_duration
 
                 mqtt_manager.send_message("cannon_cmd", cooldown_command.SerializeToString())
 
@@ -74,6 +76,9 @@ def mqtt_callback(client, userdata, message):
                 cannon_status.shot_count += 1
                 mqtt_manager.send_message("cannon_cmd", fire_command.SerializeToString())
                 print("Sending fire command!")
+                fire_prompt = "Cannon firing!"
+                prompt_manager.add_prompt(fire_prompt)
+                mqtt_manager.send_message("cannon_prompts", fire_prompt)
 
         if payload == "esc":
             # shutdown
@@ -93,18 +98,21 @@ mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, to
 runtime_config = 0
 mqtt_manager.start_reading()
 
+# set up prompt manager
+prompt_manager = PromptManager()
+
 # set up cannon class
 cannon_status = cannon_pb2.CannonStatus()
 cannon_status.motor_status = "Idle"
 cannon_status.shot_count = 0
 cannon_status.warmup_timer = -1
-cannon_status.warmup_duration = 1
+cannon_status.warmup_duration = 1000
 cannon_status.warmup_timer_end = -1
 cannon_status.cooldown_timer = -1
-cannon_status.cooldown_duration = 1
+cannon_status.cooldown_duration = 1000
 cannon_status.cooldown_timer_end = -1
 cannon_status.overheat_timer = -1
-cannon_status.overheat_duration = 5
+cannon_status.overheat_duration = 4000
 cannon_status.overheat_timer_end = -1
 
 cannon_subprocess = ["python3", "keyboard_controller.py", keyboard_mqtt_id]
@@ -132,7 +140,6 @@ while True:
         continue
 
     image = cv2.imdecode(stream_client.frame, -1)
-    
     try:
         image = cv2.resize(image, (1920,1080))
     except:
@@ -140,39 +147,49 @@ while True:
         print(sys.exc_info()[0])
         continue
 
+    prompt_manager.clear_expired_prompts()
+
     # process cannon state
     if cannon_status.motor_status == "Warming Up":
-        cannon_status.warmup_timer = int(time.time())
+        cannon_status.warmup_timer = millis()
         if cannon_status.warmup_timer_end - cannon_status.warmup_timer <= 0:
             # Cannon finished warming up
-            print("Cannon warmed up!")
+            warm_prompt = "Cannon warmed up!"
+            prompt_manager.add_prompt(warm_prompt)
+            mqtt_manager.send_message("cannon_prompts", warm_prompt)
             cannon_status.motor_status = "Warmed Up"
             cannon_status.warmup_timer = -1
             cannon_status.warmup_timer_end = -1
-            cannon_status.overheat_timer = int(time.time())
-            cannon_status.overheat_timer_end = int(time.time()) + cannon_status.overheat_duration
+            cannon_status.overheat_timer = millis()
+            cannon_status.overheat_timer_end = millis() + cannon_status.overheat_duration
 
     if cannon_status.motor_status == "Warmed Up":
-        cannon_status.overheat_timer = int(time.time())
+        cannon_status.overheat_timer = millis()
         if cannon_status.overheat_timer_end - cannon_status.overheat_timer <= 0:
             # Cannon overheated!
             print("Cannon overheated!")
+            overheat_prompt = "Cannon overheated!"
+            prompt_manager.add_prompt(overheat_prompt)
+            mqtt_manager.send_message("cannon_prompts", overheat_prompt)
             cannon_status.motor_status = "Overheated! Cooling Down"
             cannon_status.warmup_timer = -1
             cannon_status.warmup_timer_end = -1
             cannon_status.overheat_timer = -1
             cannon_status.overheat_timer_end = -1
-            cannon_status.cooldown_duration = 5
-            cannon_status.cooldown_timer = int(time.time())
-            cannon_status.cooldown_timer_end = int(time.time()) + cannon_status.cooldown_duration
+            cannon_status.cooldown_duration = 5000
+            cannon_status.cooldown_timer = millis()
+            cannon_status.cooldown_timer_end = millis() + cannon_status.cooldown_duration
             cooldown_command = cannon_pb2.CannonCommand()
             cooldown_command.type = 2
             mqtt_manager.send_message("cannon_cmd", cooldown_command.SerializeToString())
 
 
     if cannon_status.motor_status in ["Overheated! Cooling Down", "Cooling Down"]:
-        cannon_status.cooldown_timer = int(time.time())
+        cannon_status.cooldown_timer = millis()
         if cannon_status.cooldown_timer_end - cannon_status.cooldown_timer <= 0:
+            cooldown_prompt = "Cannon is cool and ready!"
+            prompt_manager.add_prompt(cooldown_prompt)
+            mqtt_manager.send_message("cannon_prompts", cooldown_prompt)
             cannon_status.motor_status = "Idle"
             cannon_status.cooldown_timer = -1
             cannon_status.cooldown_timer_end = -1
@@ -180,7 +197,9 @@ while True:
     mqtt_manager.send_message("cannon_status", cannon_status.SerializeToString())
 
     if hud_data:
-        add_text_overlays(image, hud_data)
+        add_text_overlays(image, hud_data, cannon_status)
+
+    overlay_prompts(image, prompt_manager.gather_valid_prompts())
 
     cv2.imshow("WALLU Stream", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
