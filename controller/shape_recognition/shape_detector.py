@@ -27,20 +27,4 @@ class ShapeDetector:
                 target_info[0] = shape
                 target_info[1] = coords
             #shape = "triangle"
-
-        elif len(approx) == 4:
-            (x, y, w, h) = cv2.boundingRect(approx)
-            ar = w / float(h)
-
-            if ar >= 0.95 and ar <= 1.05:
-                shape = "square" 
-            else:
-                 shape = "rectangle"
-
-        elif len(approx) == 5:
-            shape = "pentagon"
-        elif len(approx) > 5:
-            shape = "something weird"
-        else:
-            shape = "circle"
         return target_info       

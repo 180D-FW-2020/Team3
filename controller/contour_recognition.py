@@ -20,15 +20,15 @@ def target_recognition(image):
     cnts = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
 
-    sd = ShapeDetector()
-    cl = ColorLabeler()
+    shape_detector = ShapeDetector()
+    color_labeler = ColorLabeler()
     if len(cnts) > 0:
         for c in cnts:
             M = cv2.moments(c)
             if M["m00"] != 0:
                 cX = int((M["m10"] / M["m00"]) * ratio)
                 cY = int((M["m01"] / M["m00"]) * ratio)
-                c_target = sd.detect(c)
+                c_target = shape_detector.detect(c)
                 shape = c_target[0]
                 coordinates = c_target[1]
                 c = c.astype("float")
@@ -36,11 +36,10 @@ def target_recognition(image):
                 c = c.astype("int")
                 if shape == "triangle":
                     if cv2.contourArea(c) > 600:
-                        color = cl.label(lab, c)
+                        color = color_labeler.label(lab, c)
                         targets.append(c_target)
                         #text = "{} {}".format(color, shape)
                         coords = np.array([np.array(coordinates[0]), np.array(coordinates[1]), np.array(coordinates[2])])
                         #cv2.drawContours(image, [coords.astype(int)], -1, (0, 255, 0), 2)
                         #cv2.putText(image, text, (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
-    
     return targets
