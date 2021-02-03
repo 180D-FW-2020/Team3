@@ -36,6 +36,7 @@ def target_recognition(image):
                 if shape == "triangle":
                     if cv2.contourArea(c) > 600:
                         color = color_labeler.label(lab, c)
+                        c_target[0] = color
                         targets.append(c_target)
                         #text = "{} {}".format(color, shape)
                         coords = np.array([np.array(coordinates[0]), np.array(coordinates[1]), np.array(coordinates[2])])
