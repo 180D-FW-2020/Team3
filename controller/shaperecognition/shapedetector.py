@@ -15,13 +15,6 @@ class ShapeDetector:
         target_info.append(coords)
         if len(approx) == 3:
             coords = np.zeros((3, 2))
-            #n = approx.ravel()
-            #i = 0
-            #for j in n:
-            #    if (i % 2 == 0):
-            #        #x = n[i]
-            #        #y = n[i+1]
-            #        coords[i] = (np.array(n[i], n[i+1]))
             coords[0] = approx[0]
             coords[1] = approx[1]
             coords[2] = approx[2]
@@ -48,10 +41,8 @@ class ShapeDetector:
             shape = "pentagon"
         elif len(approx) > 5:
             shape = "something weird"
-            #elif len(approx) == 2:
-            #    shape = "line"
         else:
             shape = "circle"
         return target_info
-        #return shape
+        
         

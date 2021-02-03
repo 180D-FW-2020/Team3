@@ -13,7 +13,6 @@ else:
 
 show_frame = 1
 
-
 def target_recognition(image):
     targets = list()
     kernel = np.ones((5,5),np.uint8)

@@ -30,3 +30,4 @@ class ColorLabeler:
                 minDist = (d, i)
 
         return self.colorNames[minDist[1]]
+        
