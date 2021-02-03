@@ -11,7 +11,7 @@ def target_recognition(image):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
+    blurred = cv2.GaussianBlur(gray, (7, 7), 1)
     edges = cv2.Canny(blurred,50,200)
     dilated = cv2.dilate(edges, kernel, iterations = 1)
 

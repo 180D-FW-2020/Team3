@@ -12,6 +12,69 @@ import numpy as np
 import argparse
 import subprocess
 
+def detect_color(image_frame):   
+    target_list = []
+    hsv_frame = cv2.cvtColor(image_frame, cv2.COLOR_BGR2HSV) 
+  
+    # Set range for red color and  
+    # define mask 
+    red_lower = np.array([136, 87, 111], np.uint8) 
+    red_upper = np.array([180, 255, 255], np.uint8) 
+    red_mask = cv2.inRange(hsv_frame, red_lower, red_upper) 
+  
+    # Set range for blue color and 
+    # define mask 
+    blue_lower = np.array([94, 150, 0], np.uint8) 
+    blue_upper = np.array([120, 255, 255], np.uint8) 
+    blue_mask = cv2.inRange(hsv_frame, blue_lower, blue_upper) 
+      
+    # Morphological Transform, Dilation 
+    # for each color and bitwise_and operator 
+    # between imageFrame and mask determines 
+    # to detect only that particular color 
+    kernal = np.ones((5, 5), "uint8") 
+      
+    # For red color 
+    red_mask = cv2.dilate(red_mask, kernal) 
+    res_red = cv2.bitwise_and(image_frame, image_frame,  
+                              mask = red_mask) 
+    
+      
+    # For blue color 
+    blue_mask = cv2.dilate(blue_mask, kernal) 
+    res_blue = cv2.bitwise_and(image_frame, image_frame, 
+                               mask = blue_mask) 
+   
+    # Creating contour to track red color 
+    contours, hierarchy = cv2.findContours(red_mask, 
+                                           cv2.RETR_TREE, 
+                                           cv2.CHAIN_APPROX_SIMPLE) 
+      
+    for pic, contour in enumerate(contours): 
+        area = cv2.contourArea(contour) 
+        if(area > 300): 
+            x, y, w, h = cv2.boundingRect(contour) 
+            parameters = [x,y,w,h]
+            target_info = ["red", parameters]
+            target_list.append(target_info)
+            image_frame = cv2.rectangle(image_frame, (x, y), 
+                                       (x + w, y + h), 
+                                       (255, 0, 0), 2)
+    contours, hierarchy = cv2.findContours(blue_mask, 
+                                           cv2.RETR_TREE, 
+                                           cv2.CHAIN_APPROX_SIMPLE) 
+    for pic, contour in enumerate(contours): 
+        area = cv2.contourArea(contour) 
+        if(area > 300): 
+            x, y, w, h = cv2.boundingRect(contour)
+            parameters = [x,y,w,h]
+            target_info = ["blue", parameters]
+            target_list.append(target_info)
+            image_frame = cv2.rectangle(image_frame, (x, y), 
+                                       (x + w, y + h), 
+                                       (255, 0, 0), 2)
+    return target_list
+
 def mqtt_callback(client, userdata, message):
     global runtime_config
     global hud_data
@@ -90,6 +153,7 @@ while True:
         add_text_overlays(image, hud_data, cannon_status)
     overlay_prompts(image, prompt_manager.gather_valid_prompts())
         
+    detect_color(image)
     cv2.imshow("WALLU Stream", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
