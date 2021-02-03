@@ -11,9 +11,12 @@ def target_recognition(image):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
-    blurred = cv2.GaussianBlur(gray, (7, 7), 0)
-    edges = cv2.Canny(blurred,50,200)
-    dilated = cv2.dilate(edges, kernel, iterations = 1)
+    blurred = cv2.GaussianBlur(gray, (3, 3), 0)
+    edges = cv2.Canny(lab,50,200)
+    dilated = cv2.dilate(edges, kernel, iterations = 2)
+
+    cv2.imshow("dilated", dilated)
+    cv2.waitKey(20)
 
     ratio = image.shape[0] / float(edges.shape[0])
     cnts = cv2.findContours(dilated.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)

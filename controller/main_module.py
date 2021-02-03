@@ -78,7 +78,7 @@ def voice_callback():
 def filter_target_colors(targets, target_color):
     if current_target_color == "All":
         return targets
-    else
+    else:
         colored_targets = []
         for target in targets:
             if target[0] == target_color:
@@ -143,6 +143,8 @@ while True:
         
 
     targets = contour_recognition.target_recognition(image)
+    print(len(targets))
+    print(targets)
     valid_targets = filter_target_colors(targets, current_target_color)
 
     for target in valid_targets:

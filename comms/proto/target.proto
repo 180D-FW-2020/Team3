@@ -1,0 +1,14 @@
+// Make sure to run protoc-3 after changing!
+
+syntax = "proto3";
+
+package wallu.target;
+
+message Target {
+    string color = 1;
+    repeated double coordinates = 2;
+}
+
+message Scene {
+    repeated Target targets = 1;
+}

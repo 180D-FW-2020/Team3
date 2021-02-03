@@ -5,10 +5,11 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../.
 import socket
 import time
 from imutils.video import WebcamVideoStream
+import contour_recognition
 import imagezmq
 from comms.pyserial.serial_threaded import SerialInterface
 from comms.mqtt import interface as mqtt_interface
-from comms.proto import cannon_pb2
+from comms.proto import cannon_pb2, target_pb2
 import time
 import cv2
 import imutils
@@ -74,6 +75,16 @@ jpeg_quality = 70
 
 while True:  # send images as stream until Ctrl-C
     image = picam.read()
+
+    targets = contour_recognition.target_recognition(image)
+    targets_proto = target_pb2.Scene()
+    for target in targets:
+        target_proto = target_pb2.Target()
+        target_proto.color = target[0]
+        target_proto.coordinates = target[1]
+        targets_proto.targets.append(target_proto)
+    mqtt_manager.send_message("target_locations", targets_proto.SerializeToString())
+
     image = imutils.resize(image, width=480, inter=cv2.INTER_NEAREST)
     ret_code, jpg_buffer = cv2.imencode(".jpg", image, [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality])
     sender.send_image(rpi_name, jpg_buffer)
