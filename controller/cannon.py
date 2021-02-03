@@ -93,7 +93,7 @@ args = arg_parser.parse_args()
 mqtt_id = "cannon"
 keyboard_mqtt_id = "cannon_control"
 mqtt_targets = ["laptop"]
-mqtt_topics = ["motor_requests", "storage_control", "vitals", keyboard_mqtt_id, "hud_data"]
+mqtt_topics = [keyboard_mqtt_id, "hud_data"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, local=True if args.local else False)
 runtime_config = 0
 mqtt_manager.start_reading()
