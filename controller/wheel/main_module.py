@@ -61,12 +61,13 @@ while runtime_config == 0:
 
 serial_interface = SerialInterface("/dev/ttyUSB0")
 serial_thread = threading.Thread(target=serial_interface.read_from_port)
-serial_thread.start()
+#serial_thread.start()
 
 imu_thread = threading.Thread(target=compute_angle.start_compute, args=(serial_interface.stack,))
 imu_thread.start()
 
 while True:
+    serial_interface.single_read()
     if "JOY" in serial_interface.stack and "steering_angle" in serial_interface.stack:
-        motor_request_proto = generate_motor_request(serial_interface.stack.pop("JOY"), serial_interface.stack["steering_angle"])
+        motor_request_proto = generate_motor_request(serial_interface.stack["JOY"], serial_interface.stack["steering_angle"])
         mqtt_manager.send_message("motor_requests", motor_request_proto.SerializeToString())

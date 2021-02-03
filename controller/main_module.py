@@ -57,7 +57,8 @@ def mqtt_callback(client, userdata, message):
     if parsed_topic == "vitals":
         vitals = vitals_pb2.Vitals()
         vitals.ParseFromString(payload)
-        hud_data.battery_level = str(vitals.battery_voltage)[:-1] + "." + str(vitals.battery_voltage)[-1]
+        #hud_data.battery_level = str(vitals.battery_voltage)[:-1] + "." + str(vitals.battery_voltage)[-1]
+        hud_data.battery_level = 15
         if vitals.payload == "L" and hud_data.payload == "Unlocked":
             hud_data.payload = "Locked"
 
@@ -93,6 +94,7 @@ current_target_color = "All"
 
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
+mqtt_targets = ["vision", "cannon", "game_master", "wallu", "wheel"]
 mqtt_targets = ["vision", "cannon", "game_master"]
 mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status", "target_color"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
@@ -143,8 +145,6 @@ while True:
         
 
     targets = contour_recognition.target_recognition(image)
-    print(len(targets))
-    print(targets)
     valid_targets = filter_target_colors(targets, current_target_color)
 
     for target in valid_targets:

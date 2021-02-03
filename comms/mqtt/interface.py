@@ -88,12 +88,9 @@ class MqttInterface:
     def register_pulse(self, target):
         if target in self.targets:
             self.pulses[target] = millis()
-            print("Registered pulse from: " + target)
-        else:
-            print("Received pulse from unrecognized target: " + target)
-
+        
     def target_check(self, target):
-        return (target in self.pulses) and (millis() - self.pulses[target] < 1.5*PULSE_PERIOD)
+        return (target in self.pulses) and (millis() - self.pulses[target] < 2*PULSE_PERIOD)
 
     def pulse_forever(self):
         # Send init message
