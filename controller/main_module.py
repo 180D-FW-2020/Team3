@@ -4,6 +4,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 
 import cv2
 import imagezmq
+import contour_recognition
 #import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
@@ -66,18 +67,34 @@ def mqtt_callback(client, userdata, message):
     if parsed_topic == "cannon_prompts":
         prompt_manager.add_prompt(decoded_payload)
 
+    if parsed_topic == "target_color":
+        current_target_color = decoded_payload
+
 def voice_callback():
     print("Sending unlock command")
     mqtt_manager.send_message("storage_control", "unlock")
 
+
+def filter_target_colors(targets, target_color):
+    if current_target_color == "All":
+        return targets
+    else
+        colored_targets = []
+        for target in targets:
+            if target[0] == target_color:
+                colored_targets.append(target)
+        return colored_targets
+
+
 hud_data = hud_pb2.HudPoint()
 cannon_status = cannon_pb2.CannonStatus()
 prompt_manager = PromptManager()
+current_target_color = "All"
 
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
 mqtt_targets = ["vision", "cannon", "game_master"]
-mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status"]
+mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status", "target_color"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
 
@@ -124,6 +141,12 @@ while True:
             hud_data.unlock = 1
             hud_data.payload = "Unlocked"
         
+
+    targets = contour_recognition.target_recognition(image)
+    valid_targets = filter_target_colors(targets, current_target_color)
+
+    for target in valid_targets:
+        cv2.drawContours(image, [target[1].astype(int)], -1, (0, 255, 0), 2)
 
     add_text_overlays(image, hud_data, cannon_status)
     prompt_manager.clear_expired_prompts()
