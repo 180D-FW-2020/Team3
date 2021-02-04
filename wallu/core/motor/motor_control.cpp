@@ -37,7 +37,7 @@ int MotorControl::perform_movement(MotorDirection dir, int throttle, int angle)
     if (dir == BACKWARD)
     {
         //Run normally
-        m_left_motor->set_throttle(throttle, BACKWARD);
+        m_left_motor->set_throttle(throttle*0.8, BACKWARD);
         m_right_motor->set_throttle(throttle, BACKWARD);
     }
     else if (dir == FORWARD)
