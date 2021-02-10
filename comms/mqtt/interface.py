@@ -28,7 +28,7 @@ def default_callback(client, userdata, message):
 
 
 class MqttInterface:
-    def __init__(self, id, targets, topics, callback=0, alpha=False, local=True):
+    def __init__(self, id, targets, topics, callback=0, alpha=False, local=True, pulse=True):
         self.id = id
         self.mqtt_client = mqtt.Client()
         self.mqtt_client.on_connect = self.on_connect
@@ -36,7 +36,7 @@ class MqttInterface:
         self.targets = targets
         self.alpha = alpha
         self.last_pulse = 0
-
+        self.should_pulse = pulse
         self.topics = topics
         self.pulses = {}
 
@@ -65,7 +65,8 @@ class MqttInterface:
         else:
             self.subscribe("runtime_config")
             pulse_thread = threading.Thread(target=self.pulse_forever)
-            pulse_thread.start()
+            if self.should_pulse:
+                pulse_thread.start()
 
     def subscribe(self, topic):
         full_topic = TOPIC_PREFIX + str(topic)
@@ -88,12 +89,11 @@ class MqttInterface:
     def register_pulse(self, target):
         if target in self.targets:
             self.pulses[target] = millis()
-            print("Registered pulse from: " + target)
-        else:
-            print("Received pulse from unrecognized target: " + target)
-
+        
     def target_check(self, target):
-        return (target in self.pulses) and (millis() - self.pulses[target] < 1.5*PULSE_PERIOD)
+        if target == "wallu":
+            return True
+        return (target in self.pulses) and (millis() - self.pulses[target] < 5*PULSE_PERIOD)
 
     def pulse_forever(self):
         # Send init message

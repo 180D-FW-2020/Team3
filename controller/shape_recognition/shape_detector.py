@@ -21,10 +21,12 @@ class ShapeDetector:
             len_1 = np.sqrt(((coords[0, 0]-coords[1, 0])**2)+((coords[0, 1]-coords[1, 1])**2))
             len_2 = np.sqrt(((coords[0, 0]-coords[2, 0])**2)+((coords[0, 1]-coords[2, 1])**2))
             #len_3 = np.sqrt(((coords[1, 0]-coords[2, 0])**2)+((coords[1, 1]-coords[2, 1])**2))
-            error_margin = .1*min(len_1, len_2)
-            if ((np.abs(len_1-len_2) < error_margin)):
-                shape = "triangle"
-                target_info[0] = shape
-                target_info[1] = coords
-            #shape = "triangle"
+            #error_margin = .1*min(len_1, len_2)
+            #if ((np.abs(len_1-len_2) < error_margin)):
+            #    shape = "triangle"
+            #    target_info[0] = shape
+            #    target_info[1] = coords
+            shape = "triangle"
+            target_info[0] = shape
+            target_info[1] = coords
         return target_info       

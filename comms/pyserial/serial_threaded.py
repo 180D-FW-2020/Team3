@@ -19,6 +19,17 @@ class SerialInterface:
                     else:
                         self.buf += char
 
+    def single_read(self):
+        reading = self.serial_fd.readline().decode()
+        if reading:
+            for char in reading:
+                if char == ";":
+                    # Process command in buf
+                    self.parse_message(self.buf)
+                    self.buf = ""
+                else:
+                    self.buf += char
+
     def parse_message(self, message):
         topic = message[:3]
         message = message[3:]

@@ -8,7 +8,7 @@ from imutils.video import WebcamVideoStream
 import imagezmq
 from comms.pyserial.serial_threaded import SerialInterface
 from comms.mqtt import interface as mqtt_interface
-from comms.proto import cannon_pb2
+from comms.proto import cannon_pb2, target_pb2
 import time
 import cv2
 import imutils
