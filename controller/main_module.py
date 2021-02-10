@@ -8,7 +8,7 @@ import contour_recognition
 #import voice_unlock
 from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
-from comms.proto import hud_pb2, cannon_pb2, vitals_pb2, motor_requests_pb2
+from comms.proto import hud_pb2, cannon_pb2, vitals_pb2, motor_requests_pb2, target_pb2
 from stream_utils import add_text_overlays, overlay_text, overlay_prompts, PromptManager
 import time
 import threading
@@ -52,7 +52,7 @@ def mqtt_callback(client, userdata, message):
         if decoded_payload == "unlock0":
             hud_data.payload = "Beginning Unlock Sequence"
             hud_data.unlock = 0
-            hud_data.unlock_timer = time.time()
+            hud_data.unlock_timer = int(time.time())
 
     if parsed_topic == "vitals":
         vitals = vitals_pb2.Vitals()
@@ -70,6 +70,10 @@ def mqtt_callback(client, userdata, message):
 
     if parsed_topic == "target_color":
         current_target_color = decoded_payload
+        prompt_manager.add_prompt("Target color selection changed to " + current_target_color)
+
+    if parsed_topic == "target_locations":
+        current_scene.ParseFromString(payload)
 
 def voice_callback():
     print("Sending unlock command")
@@ -90,13 +94,13 @@ def filter_target_colors(targets, target_color):
 hud_data = hud_pb2.HudPoint()
 cannon_status = cannon_pb2.CannonStatus()
 prompt_manager = PromptManager()
-current_target_color = "All"
+current_target_color = "red"
 
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
-mqtt_targets = ["vision", "cannon", "game_master", "wallu", "wheel"]
-mqtt_targets = ["vision", "cannon", "game_master"]
-mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status", "target_color"]
+mqtt_targets = ["vision", "cannon", "game_master", "wheel"]
+#mqtt_targets = ["vision", "cannon", "game_master"]
+mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status", "target_color", "target_locations"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
 
@@ -111,16 +115,23 @@ stream_manager = tcp_interface.StreamServer((LOCAL_IP, LOCAL_PORT))
 stream_manager.start()
 
 image_hub = imagezmq.ImageHub()
+runtime_config = -1
+
+current_scene = target_pb2.Scene()
 
 while True:
     if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
         # not ready for normal operation
         print("Waiting for all devices to come online...")
-        mqtt_manager.send_message("runtime_config", "0")
+        if runtime_config != 0:
+            runtime_config = 0
+            mqtt_manager.send_message("runtime_config", "0")
         time.sleep(0.5)
         continue
     else:
-        mqtt_manager.send_message("runtime_config", "1")
+        if runtime_config != 1:
+            runtime_config = 1
+            mqtt_manager.send_message("runtime_config", "1")
 
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
@@ -143,18 +154,21 @@ while True:
             hud_data.unlock = 1
             hud_data.payload = "Unlocked"
         
-
-    targets = contour_recognition.target_recognition(image)
-    valid_targets = filter_target_colors(targets, current_target_color)
-
-    for target in valid_targets:
-        cv2.drawContours(image, [target[1].astype(int)], -1, (0, 255, 0), 2)
-
     add_text_overlays(image, hud_data, cannon_status)
     prompt_manager.clear_expired_prompts()
     overlay_prompts(image, prompt_manager.gather_valid_prompts())
 
     mqtt_manager.send_message("hud_data", hud_data.SerializeToString())
+
+    if current_scene:
+        for target in current_scene.targets:
+            # draw target
+            coords_proto = target.coordinates
+            coords = []
+            for vertex in coords_proto:
+                coords.append(vertex.coord)
+            cv2.drawContours(image, [np.array(coords).astype(int)], -1, (0, 255, 0), 2)
+
 
     #cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
     #cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)

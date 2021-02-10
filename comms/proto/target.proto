@@ -4,9 +4,13 @@ syntax = "proto3";
 
 package wallu.target;
 
+message Coord {
+    repeated double coord = 1;
+}
+
 message Target {
     string color = 1;
-    repeated double coordinates = 2;
+    repeated Coord coordinates = 2;
 }
 
 message Scene {

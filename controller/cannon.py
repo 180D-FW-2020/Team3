@@ -7,6 +7,7 @@ from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
 from comms.proto import hud_pb2
 from comms.proto import cannon_pb2
+from comms.proto import target_pb2
 from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts
 import time
 import numpy as np
@@ -29,8 +30,9 @@ def mqtt_callback(client, userdata, message):
         hud_data.ParseFromString(payload)
         return
 
-    payload = payload.decode("utf-8")
+    
     if parsed_topic == "runtime_config":
+        payload = payload.decode("utf-8")
         try:
             new_config = int(payload)
             if new_config != runtime_config:
@@ -41,6 +43,7 @@ def mqtt_callback(client, userdata, message):
             runtime_config = 0
 
     if parsed_topic == keyboard_mqtt_id:
+        payload = payload.decode("utf-8")
         if payload == "w":
             # cannon warmup
             if cannon_status.motor_status == "Idle" and cannon_status.cooldown_timer <= 0:
@@ -83,6 +86,14 @@ def mqtt_callback(client, userdata, message):
         if payload == "esc":
             # shutdown
             pass
+    if parsed_topic == "target_color":
+        payload = payload.decode("utf-8")
+        current_target_color = payload
+        prompt_manager.add_prompt("Target color selection changed to " + current_target_color)
+
+    if parsed_topic == "target_locations":
+        current_scene.ParseFromString(payload)
+        
 
 
 
@@ -93,7 +104,7 @@ args = arg_parser.parse_args()
 mqtt_id = "cannon"
 keyboard_mqtt_id = "cannon_control"
 mqtt_targets = ["laptop"]
-mqtt_topics = ["storage_control", keyboard_mqtt_id, "hud_data"]
+mqtt_topics = [keyboard_mqtt_id, "hud_data", "target_color", "target_locations"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, local=True if args.local else False)
 runtime_config = 0
 mqtt_manager.start_reading()
@@ -133,6 +144,8 @@ while runtime_config == 0:
     time.sleep(0.5)
 
 hud_data = None
+current_scene = target_pb2.Scene()
+current_target_color = "red"
 
 while True:
     
@@ -200,7 +213,14 @@ while True:
         add_text_overlays(image, hud_data, cannon_status)
 
     overlay_prompts(image, prompt_manager.gather_valid_prompts())
-
+    if current_scene:
+        for target in current_scene.targets:
+            # draw target
+            coords_proto = target.coordinates
+            coords = []
+            for vertex in coords_proto:
+                coords.append(vertex.coord)
+            cv2.drawContours(image, [np.array(coords).astype(int)], -1, (0, 255, 0), 2)
     cv2.imshow("WALLU Stream", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

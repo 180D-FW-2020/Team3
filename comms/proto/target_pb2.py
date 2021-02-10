@@ -19,10 +19,42 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0ctarget.proto\x12\x0cwallu.target\",\n\x06Target\x12\r\n\x05\x63olor\x18\x01 \x01(\t\x12\x13\n\x0b\x63oordinates\x18\x02 \x03(\x01\".\n\x05Scene\x12%\n\x07targets\x18\x01 \x03(\x0b\x32\x14.wallu.target.Targetb\x06proto3'
+  serialized_pb=b'\n\x0ctarget.proto\x12\x0cwallu.target\"\x16\n\x05\x43oord\x12\r\n\x05\x63oord\x18\x01 \x03(\x01\"A\n\x06Target\x12\r\n\x05\x63olor\x18\x01 \x01(\t\x12(\n\x0b\x63oordinates\x18\x02 \x03(\x0b\x32\x13.wallu.target.Coord\".\n\x05Scene\x12%\n\x07targets\x18\x01 \x03(\x0b\x32\x14.wallu.target.Targetb\x06proto3'
 )
 
 
+
+
+_COORD = _descriptor.Descriptor(
+  name='Coord',
+  full_name='wallu.target.Coord',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='coord', full_name='wallu.target.Coord.coord', index=0,
+      number=1, type=1, cpp_type=5, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=30,
+  serialized_end=52,
+)
 
 
 _TARGET = _descriptor.Descriptor(
@@ -42,7 +74,7 @@ _TARGET = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
       name='coordinates', full_name='wallu.target.Target.coordinates', index=1,
-      number=2, type=1, cpp_type=5, label=3,
+      number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -59,8 +91,8 @@ _TARGET = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=30,
-  serialized_end=74,
+  serialized_start=54,
+  serialized_end=119,
 )
 
 
@@ -91,14 +123,23 @@ _SCENE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=76,
-  serialized_end=122,
+  serialized_start=121,
+  serialized_end=167,
 )
 
+_TARGET.fields_by_name['coordinates'].message_type = _COORD
 _SCENE.fields_by_name['targets'].message_type = _TARGET
+DESCRIPTOR.message_types_by_name['Coord'] = _COORD
 DESCRIPTOR.message_types_by_name['Target'] = _TARGET
 DESCRIPTOR.message_types_by_name['Scene'] = _SCENE
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
+
+Coord = _reflection.GeneratedProtocolMessageType('Coord', (_message.Message,), {
+  'DESCRIPTOR' : _COORD,
+  '__module__' : 'target_pb2'
+  # @@protoc_insertion_point(class_scope:wallu.target.Coord)
+  })
+_sym_db.RegisterMessage(Coord)
 
 Target = _reflection.GeneratedProtocolMessageType('Target', (_message.Message,), {
   'DESCRIPTOR' : _TARGET,

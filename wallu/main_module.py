@@ -110,7 +110,7 @@ serial_thread.start()
 mqtt_id = "wallu"
 mqtt_targets = ["laptop"]
 mqtt_topics = ["motor_requests", "storage_control"]
-mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback)
+mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, pulse=False)
 runtime_config = 0
 mqtt_manager.start_reading()
 
@@ -120,6 +120,7 @@ while runtime_config == 0:
     time.sleep(0.5)
 
 while True:
+    continue
     if "VIT" in serial_interface.stack:
         vitals_proto = generate_vitals_message(serial_interface.stack.pop("VIT"))
         print("Sending vitals!")
