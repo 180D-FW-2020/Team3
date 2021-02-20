@@ -116,7 +116,7 @@ current_target_color = "red"
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
 mqtt_targets = ["vision", "cannon", "game_master", "wheel"]
-mqtt_targets = ["vision", "cannon", "game_master"]
+#mqtt_targets = ["vision", "cannon", "game_master"]
 mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status", "target_color", "target_locations"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
