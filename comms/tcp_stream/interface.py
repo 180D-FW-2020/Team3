@@ -8,21 +8,22 @@ kBufferSize = 8192
 
 class StreamClient:
     def __init__(self, server_info):
-        self.tcp_client = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
         self.frame_init = False
         self.buffer = "".encode()
         self.connected = False
-
-        while not self.connected:
-            try:
-                self.tcp_client.connect(server_info)
-                self.connected = True
-            except:
-                print("Could not connect to stream...")
-                time.sleep(0.5)
+        self.server_info = server_info
         
     def read_frames(self):
         while True:
+            while not self.connected:
+                try:
+                    self.tcp_client = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+                    self.tcp_client.connect(self.server_info)
+                    self.connected = True
+                except:
+                    print("Could not connect to stream...")
+                    time.sleep(0.5)
+
             jpg_buffer = self.tcp_client.recv(kBufferSize)
             if "eve".encode() in jpg_buffer:
                 delim = jpg_buffer.split("eve".encode())
@@ -36,6 +37,7 @@ class StreamClient:
 
     def start(self):
         client_thread = threading.Thread(target=self.read_frames)
+        client_thread.daemon = True
         client_thread.start()
 
 class StreamServer:
@@ -58,6 +60,7 @@ class StreamServer:
 
     def start(self):
         server_thread = threading.Thread(target=self.accept_new_conns)
+        server_thread.daemon = True
         server_thread.start()
 
     def send_frame(self, buffer):

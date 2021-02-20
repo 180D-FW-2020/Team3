@@ -9,7 +9,7 @@ import contour_recognition
 from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
 from comms.proto import hud_pb2, cannon_pb2, vitals_pb2, motor_requests_pb2, target_pb2
-from stream_utils import add_text_overlays, overlay_text, overlay_prompts, PromptManager
+from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts, overlay_image
 import time
 import threading
 import pose_detect
@@ -18,13 +18,26 @@ import subprocess
 import select
 import socket
 
-kUnlockTimer = 20
+kUnlockTimer = 20 # seconds
+kConfigPublishTimer = 500 # milliseconds
 millis = lambda: int(round(time.time() * 1000))
 
 class Coord:
     def __init__(self, y, x):
         self.y = y
         self.x = x
+
+def on_mouse(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if x > exit_icon_coords[0][0] and x < exit_icon_coords[0][1] and y > exit_icon_coords[1][0] and y < exit_icon_coords[1][1]:
+            print("Exit click detected!")
+            cv2.destroyAllWindows()
+            for i in range(3):
+                mqtt_manager.send_message("runtime_config", "0")
+                print("Resetting runtime config")
+            time.sleep(0.5)
+            process.kill()
+            sys.exit()
 
 def mqtt_callback(client, userdata, message):
     payload = message.payload
@@ -91,6 +104,10 @@ def filter_target_colors(targets, target_color):
         return colored_targets
 
 
+# start MQTT broker
+broker_process = ["/usr/local/sbin/mosquitto", "-c", "../comms/mqtt/config/mosquitto.conf"]
+process = subprocess.Popen(broker_process)
+
 hud_data = hud_pb2.HudPoint()
 cannon_status = cannon_pb2.CannonStatus()
 prompt_manager = PromptManager()
@@ -99,13 +116,16 @@ current_target_color = "red"
 mqtt_id = "laptop"
 mqtt_targets = ["vision", "wallu", "cannon", "game_master"]
 mqtt_targets = ["vision", "cannon", "game_master", "wheel"]
-#mqtt_targets = ["vision", "cannon", "game_master"]
+mqtt_targets = ["vision", "cannon", "game_master"]
 mqtt_topics = ["motor_requests", "storage_control", "vitals", "cannon_prompts", "cannon_status", "target_color", "target_locations"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
 mqtt_manager.start_reading()
 
-#thread = threading.Thread(target=voice_unlock.start_listening, args=("unlock", voice_callback))
-#thread.start()
+load_screen = cv2.imread("graphics/loadscreen.png", -1)
+load_screen = cv2.resize(load_screen, (1920,1080), interpolation=cv2.INTER_AREA)
+exit_icon = cv2.imread("graphics/icons/logout.png", -1)
+exit_icon = cv2.resize(exit_icon, (40, 40), interpolation=cv2.INTER_AREA)
+exit_icon_coords = []
 
 # Set up socket for video streaming
 LOCAL_IP = "0.0.0.0"
@@ -114,28 +134,47 @@ LOCAL_PORT = 50000
 stream_manager = tcp_interface.StreamServer((LOCAL_IP, LOCAL_PORT))
 stream_manager.start()
 
-image_hub = imagezmq.ImageHub()
 runtime_config = -1
+config_timer = millis()
+image_hub = -1
+image_hub = None
 
 current_scene = target_pb2.Scene()
 
 while True:
+    if millis() - config_timer >= kConfigPublishTimer:
+        mqtt_manager.send_message("runtime_config", str(runtime_config))
+        config_timer = millis()
+
     if not all(mqtt_manager.target_check(target) for target in mqtt_targets):
         # not ready for normal operation
         print("Waiting for all devices to come online...")
+        image = load_screen
+        overlay_image(image, exit_icon, [image.shape[1]-80, 50])
+        exit_icon_coords = [ [image.shape[1]-80, image.shape[1]-40], [50, 90] ]
+        cv2.imshow("WALLU Stream: Main Controller", image)
+        cv2.setMouseCallback("WALLU Stream: Main Controller", on_mouse)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
         if runtime_config != 0:
             runtime_config = 0
+            if image_hub is not None:
+                image_hub.close()
             mqtt_manager.send_message("runtime_config", "0")
         time.sleep(0.5)
         continue
     else:
         if runtime_config != 1:
+            image_hub = imagezmq.ImageHub()
             runtime_config = 1
             mqtt_manager.send_message("runtime_config", "1")
 
     rpi_name, jpg_buffer = image_hub.recv_jpg()
     image = cv2.imdecode(np.frombuffer(jpg_buffer, dtype='uint8'), -1)
     image = cv2.resize(image, (1920,1080))
+
+    overlay_image(image, exit_icon, [image.shape[1]-80, 50])
+    exit_icon_coords = [ [image.shape[1]-80, image.shape[1]-40], [50, 90] ]
 
     stream_manager.send_frame(np.frombuffer(jpg_buffer, dtype='uint8'))
 
@@ -172,7 +211,8 @@ while True:
 
     #cv2.namedWindow(rpi_name, cv2.WND_PROP_FULLSCREEN)
     #cv2.setWindowProperty(rpi_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-    cv2.imshow(rpi_name, image)
+    cv2.setMouseCallback("WALLU Stream: Main Controller", on_mouse)
+    cv2.imshow("WALLU Stream: Main Controller", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
     image_hub.send_reply(b'OK')

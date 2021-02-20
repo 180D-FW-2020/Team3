@@ -68,6 +68,10 @@ imu_thread.start()
 
 while True:
     serial_interface.single_read()
+    if runtime_config == 0:
+        print("Waiting for instructions from main controller...")
+        time.sleep(0.5)
+        continue
     if "JOY" in serial_interface.stack and "steering_angle" in serial_interface.stack:
         motor_request_proto = generate_motor_request(serial_interface.stack.pop("JOY"), serial_interface.stack["steering_angle"])
         mqtt_manager.send_message("motor_requests", motor_request_proto.SerializeToString())
