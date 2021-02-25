@@ -69,7 +69,7 @@ runtime_config = 0
 mqtt_manager.start_reading()
 
 rpi_name = socket.gethostname()  # send RPi hostname with each image
-picam = WebcamVideoStream(src=1).start()
+picam = WebcamVideoStream(src=0).start()
 #time.sleep(2.0)  # allow camera sensor to warm up
 jpeg_quality = 70
 
