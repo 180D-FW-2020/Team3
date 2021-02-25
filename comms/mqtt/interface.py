@@ -65,6 +65,7 @@ class MqttInterface:
         else:
             self.subscribe("runtime_config")
             pulse_thread = threading.Thread(target=self.pulse_forever)
+            pulse_thread.daemon = True
             if self.should_pulse:
                 pulse_thread.start()
 
