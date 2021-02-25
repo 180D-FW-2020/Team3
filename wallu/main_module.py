@@ -120,7 +120,7 @@ while runtime_config == 0:
     time.sleep(0.5)
 
 while True:
-    continue
+    continue # vitals still unstable
     if "VIT" in serial_interface.stack:
         vitals_proto = generate_vitals_message(serial_interface.stack.pop("VIT"))
         print("Sending vitals!")

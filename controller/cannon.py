@@ -8,7 +8,7 @@ from comms.tcp_stream import interface as tcp_interface
 from comms.proto import hud_pb2
 from comms.proto import cannon_pb2
 from comms.proto import target_pb2
-from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts
+from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts, overlay_image
 import time
 import numpy as np
 import argparse
@@ -38,6 +38,8 @@ def mqtt_callback(client, userdata, message):
             if new_config != runtime_config:
                 runtime_config = new_config
                 print("Set runtime config to " + str(runtime_config))
+                if runtime_config == 0:
+                    stream_client.connected = False
         except:
             print("Could not parse runtime config, resetting to standby.")
             runtime_config = 0
@@ -94,8 +96,13 @@ def mqtt_callback(client, userdata, message):
     if parsed_topic == "target_locations":
         current_scene.ParseFromString(payload)
         
-
-
+def on_mouse(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if x > exit_icon_coords[0][0] and x < exit_icon_coords[0][1] and y > exit_icon_coords[1][0] and y < exit_icon_coords[1][1]:
+            print("Exit click detected!")
+            cv2.destroyAllWindows()
+            process.kill()
+            sys.exit()
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--local", help="connect to the video stream locally", action="store_true")
@@ -138,16 +145,27 @@ CHOSEN_SERVER_INFO = LOCAL_SERVER_INFO if args.local else REMOTE_SERVER_INFO
 stream_client = tcp_interface.StreamClient(CHOSEN_SERVER_INFO)
 stream_client.start()
 
-# First connect to Controller Main
-while runtime_config == 0:
-    print("Waiting for instructions from main controller...")
-    time.sleep(0.5)
+load_screen = cv2.imread("graphics/loadscreen.png", -1)
+load_screen = cv2.resize(load_screen, (1920,1080), interpolation=cv2.INTER_AREA)
+exit_icon = cv2.imread("graphics/icons/logout.png", -1)
+exit_icon = cv2.resize(exit_icon, (40, 40), interpolation=cv2.INTER_AREA)
+exit_icon_coords = []
 
 hud_data = None
 current_scene = target_pb2.Scene()
 current_target_color = "red"
 
 while True:
+    if runtime_config == 0:
+        image = load_screen
+        overlay_image(image, exit_icon, [image.shape[1]-80, 50])
+        exit_icon_coords = [ [image.shape[1]-80, image.shape[1]-40], [50, 90] ]
+        cv2.imshow("WALLU Stream: Cannon", image)
+        cv2.setMouseCallback("WALLU Stream: Cannon", on_mouse)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        time.sleep(0.5)
+        continue
     
     if not stream_client.frame_init:
         continue
@@ -160,6 +178,8 @@ while True:
         print(sys.exc_info()[0])
         continue
 
+    overlay_image(image, exit_icon, [image.shape[1]-80, 50])
+    exit_icon_coords = [ [image.shape[1]-80, image.shape[1]-40], [50, 90] ]
     prompt_manager.clear_expired_prompts()
 
     # process cannon state
@@ -221,6 +241,7 @@ while True:
             for vertex in coords_proto:
                 coords.append(vertex.coord)
             cv2.drawContours(image, [np.array(coords).astype(int)], -1, (0, 255, 0), 2)
-    cv2.imshow("WALLU Stream", image)
+    cv2.imshow("WALLU Stream: Cannon", image)
+    cv2.setMouseCallback("WALLU Stream: Cannon", on_mouse)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

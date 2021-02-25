@@ -6,12 +6,20 @@ import cv2
 from comms.mqtt import interface as mqtt_interface
 from comms.tcp_stream import interface as tcp_interface
 from comms.proto import hud_pb2, cannon_pb2, target_pb2
-from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts
+from stream_utils import add_text_overlays, overlay_text, PromptManager, overlay_prompts, overlay_image
 import time
 import numpy as np
 import argparse
 import subprocess
 from contour_recognition import target_recognition_2
+
+def on_mouse(event, x, y, flags, param):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        if x > exit_icon_coords[0][0] and x < exit_icon_coords[0][1] and y > exit_icon_coords[1][0] and y < exit_icon_coords[1][1]:
+            print("Exit click detected!")
+            cv2.destroyAllWindows()
+            process.kill()
+            sys.exit()
 
 def filter_target_colors(targets, target_color):
     if current_target_color == "All":
@@ -43,6 +51,8 @@ def mqtt_callback(client, userdata, message):
             if new_config != runtime_config:
                 runtime_config = new_config
                 print("Set runtime config to " + str(runtime_config))
+                if runtime_config == 0:
+                    stream_client.connected = False
         except:
             print("Could not parse runtime config, resetting to standby.")
             runtime_config = 0
@@ -59,12 +69,14 @@ def mqtt_callback(client, userdata, message):
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument("--local", help="connect to the video stream locally", action="store_true")
+arg_parser.add_argument("--mic_index", help="choose a custom mic index (default 0)")
 args = arg_parser.parse_args()
 
 cannon_status = cannon_pb2.CannonStatus()
 current_target_color = "red"
 
 mqtt_id = "game_master"
+voice_mqtt_id = "voice_control"
 mqtt_targets = ["laptop"]
 mqtt_topics = ["storage_control", "hud_data", "cannon_status", "cannon_prompts", "target_color"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, local=True if args.local else False)
@@ -74,6 +86,18 @@ mqtt_manager.start_reading()
 # set up prompt manager
 prompt_manager = PromptManager()
 
+
+# Launch voice script
+if args.mic_index:
+    mic_index = str(args.mic_index)
+else:
+    mic_index = "0"
+voice_subprocess = ["python3", "voice_unlock.py", voice_mqtt_id, "--mic_index="+mic_index]
+if args.local:
+    voice_subprocess.append("--local")
+process = subprocess.Popen(voice_subprocess)
+
+
 REMOTE_SERVER_INFO = ("wallu.ddns.net", 50000)
 LOCAL_SERVER_INFO = ("192.168.1.206", 50000)
 CHOSEN_SERVER_INFO = LOCAL_SERVER_INFO if args.local else REMOTE_SERVER_INFO
@@ -81,15 +105,26 @@ CHOSEN_SERVER_INFO = LOCAL_SERVER_INFO if args.local else REMOTE_SERVER_INFO
 stream_client = tcp_interface.StreamClient(CHOSEN_SERVER_INFO)
 stream_client.start()
 
-# First connect to Controller Main
-while runtime_config == 0:
-    print("Waiting for instructions from main controller...")
-    time.sleep(0.5)
+load_screen = cv2.imread("graphics/loadscreen.png", -1)
+load_screen = cv2.resize(load_screen, (1920,1080), interpolation=cv2.INTER_AREA)
+exit_icon = cv2.imread("graphics/icons/logout.png", -1)
+exit_icon = cv2.resize(exit_icon, (40, 40), interpolation=cv2.INTER_AREA)
+exit_icon_coords = []
 
 hud_data = None
 
 while True:
-    
+    if runtime_config == 0:
+        image = load_screen
+        overlay_image(image, exit_icon, [image.shape[1]-80, 50])
+        exit_icon_coords = [ [image.shape[1]-80, image.shape[1]-40], [50, 90] ]
+        cv2.imshow("WALLU Stream: Game Master", image)
+        cv2.setMouseCallback("WALLU Stream: Game Master", on_mouse)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        time.sleep(0.5)
+        continue
+
     if not stream_client.frame_init:
         continue
 
@@ -101,6 +136,8 @@ while True:
         print(sys.exc_info()[0])
         continue
 
+    overlay_image(image, exit_icon, [image.shape[1]-80, 50])
+    exit_icon_coords = [ [image.shape[1]-80, image.shape[1]-40], [50, 90] ]
     prompt_manager.clear_expired_prompts()
 
     if hud_data:
@@ -119,10 +156,11 @@ while True:
                 coord_proto.coord.append(num)
             target_proto.coordinates.append(coord_proto)
         targets_proto.targets.append(target_proto)
-    print(len(targets_proto.targets))
     mqtt_manager.send_message("target_locations", targets_proto.SerializeToString())
     for target in targets:
         cv2.drawContours(image, [target[1].astype(int)], -1, (0, 255, 0), 2)
-    cv2.imshow("WALLU Stream", image)
+    
+    cv2.setMouseCallback("WALLU Stream: Game Master", on_mouse)
+    cv2.imshow("WALLU Stream: Game Master", image)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break

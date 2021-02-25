@@ -69,3 +69,14 @@ def overlay_prompts(image, prompts):
         overlay_text(image, prompt[0] + " (" + str(round(time.time() - prompt[1], 2)) + "s ago)", 1.4, (kOffsetX, kOffsetY))
         kOffsetY += 35
 
+def overlay_image(base, layer, offset):
+    # Function from https://stackoverflow.com/questions/14063070/overlay-a-smaller-image-on-a-larger-image-python-opencv
+    y1, y2 = offset[1], offset[1] + layer.shape[0]
+    x1, x2 = offset[0], offset[0] + layer.shape[1]
+
+    alpha_layer = layer[:, :, 3] / 255.0
+    alpha_base = 1.0 - alpha_layer
+
+    for i in range(3):
+        base[y1:y2, x1:x2, i] = (
+            alpha_layer * layer[:, :, i] + alpha_base * base[y1:y2, x1:x2, i])
