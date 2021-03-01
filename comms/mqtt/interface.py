@@ -48,6 +48,7 @@ class MqttInterface:
         if local:
             self.mqtt_client.connect_async('192.168.1.206')
         else:
+            #self.mqtt_client.connect_async("mqtt.eclipseprojects.io")
             self.mqtt_client.connect_async('wallu.ddns.net')
 
     def on_connect(self, client, userdata, flags, rc):
