@@ -44,7 +44,7 @@ def target_recognition(image):
                         #cv2.putText(image, text, (cX, cY), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
     return targets
 
-def target_recognition_2(image, target_color):
+def target_recognition_2(image, target_color, thresholds):
     targets = list()
     kernel = np.ones((5,5),np.uint8)
     lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
@@ -58,8 +58,11 @@ def target_recognition_2(image, target_color):
     kLowerBlue = np.array([90, 90, 0])
     kUpperBlue = np.array([150, 255, 255])
 
-    kLowerRed = np.array([136, 87, 90])
-    kUpperRed = np.array([180, 255, 255])
+    kLowerRed = np.array([thresholds[3], thresholds[4], thresholds[5]])
+    kUpperRed = np.array([thresholds[0], thresholds[1], thresholds[2]])
+
+    #kLowerRed = np.array([136, 87, 90])
+    #kUpperRed = np.array([180, 255, 255])
 
     hsv_img = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     if target_color != "blue":

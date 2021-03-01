@@ -13,6 +13,12 @@ import argparse
 import subprocess
 from contour_recognition import target_recognition_2
 
+global hue
+global saturation
+global valu
+
+global thresholds = [0, 0, 0, 0, 0, 0]
+
 def on_mouse(event, x, y, flags, param):
     if event == cv2.EVENT_LBUTTONDOWN:
         if x > exit_icon_coords[0][0] and x < exit_icon_coords[0][1] and y > exit_icon_coords[1][0] and y < exit_icon_coords[1][1]:
@@ -36,6 +42,8 @@ def mqtt_callback(client, userdata, message):
     global hud_data
     global current_target_color
 
+    global thresholds
+
     topic = message.topic
     parsed_topic = message.topic.split('/')[-1]
     payload = message.payload
@@ -44,6 +52,23 @@ def mqtt_callback(client, userdata, message):
         hud_data = hud_pb2.HudPoint()
         hud_data.ParseFromString(payload)
         return
+
+    if parsed_topic == "upper_thresh":
+        payload = payload.decode('utf-8')
+        new_values = payload.split()
+        hue = int(new_values[0], 16)
+        sat = int(new_values[1], 16)
+        val = int(new_values[2], 16)
+        l_hue = int(new_values[3], 16)
+        l_sat = int(new_values[4], 16)
+        l_val = int(new_values[5], 16)
+        thresholds[0] = hue
+        thresholds[1] = sat
+        thresholds[2] = val
+        thresholds[3] = l_hue
+        thresholds[4] = l_sat
+        thresholds[5] = l_val
+
 
     if parsed_topic == "runtime_config":
         try:
@@ -78,7 +103,7 @@ current_target_color = "red"
 mqtt_id = "game_master"
 voice_mqtt_id = "voice_control"
 mqtt_targets = ["laptop"]
-mqtt_topics = ["storage_control", "hud_data", "cannon_status", "cannon_prompts", "target_color"]
+mqtt_topics = ["upper_thresh", "storage_control", "hud_data", "cannon_status", "cannon_prompts", "target_color"]
 mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, local=True if args.local else False)
 runtime_config = 0
 mqtt_manager.start_reading()
@@ -145,7 +170,7 @@ while True:
     overlay_prompts(image, prompt_manager.gather_valid_prompts())
         
     #detect_color(image, current_target_color)
-    targets = target_recognition_2(image, current_target_color)
+    targets = target_recognition_2(image, current_target_color, thresholds)
     targets_proto = target_pb2.Scene()
     for target in targets:
         target_proto = target_pb2.Target()
