@@ -64,10 +64,10 @@ class MqttInterface:
             self.subscribe("pulse")
         else:
             self.subscribe("runtime_config")
-            pulse_thread = threading.Thread(target=self.pulse_forever)
-            pulse_thread.daemon = True
-            if self.should_pulse:
-                pulse_thread.start()
+        pulse_thread = threading.Thread(target=self.pulse_forever)
+        pulse_thread.daemon = True
+        if self.should_pulse:
+            pulse_thread.start()
 
     def subscribe(self, topic):
         full_topic = TOPIC_PREFIX + str(topic)
