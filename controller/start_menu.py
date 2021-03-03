@@ -19,29 +19,6 @@ def mqtt_callback(client, userdata, message):
     if parsed_topic == "pulse":
         mqtt_manager.register_pulse(decoded_payload)
 
-# GUI State, only allows one process to be ran at a time
-gui_status = 0
-
-# MQTT Controller Statuses
-main_status = 0
-cannon_status = 0
-gm_status = 0
-
-# Strings
-process_name = ""
-python_string = "python"
-window = tk.Tk(className=' WALL-U GUI')
-window.configure(bg='black')
-
-# MQTT Communication
-mqtt_id = "start_menu"
-mqtt_targets = ["laptop", "cannon", "game_master"]
-mqtt_topics = ["pulse"]
-
-mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, \
-	targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
-mqtt_manager.start_reading()
-
 # Button callbacks
 def wallu_callback():
 	print("Pressed WALL-U Button")
@@ -138,6 +115,29 @@ def main():
 	window.after(200, main)
 
 
+
+# GUI State, only allows one process to be ran at a time
+gui_status = 0
+
+# MQTT Controller Statuses
+main_status = 0
+cannon_status = 0
+gm_status = 0
+
+# Strings
+process_name = ""
+python_string = "python"
+window = tk.Tk(className=' WALL-U GUI')
+window.configure(bg='black')
+
+# MQTT Communication
+mqtt_id = "start_menu"
+mqtt_targets = ["laptop", "cannon", "game_master"]
+mqtt_topics = ["pulse"]
+
+mqtt_manager = mqtt_interface.MqttInterface(id=mqtt_id, \
+	targets=mqtt_targets, topics=mqtt_topics, callback=mqtt_callback, alpha=True)
+mqtt_manager.start_reading()
 
 # ===== Setup GUI =====
 
