@@ -61,13 +61,21 @@ def gm_callback():
 	global main_status
 	global gm_status
 	global process_name
+	global mic_index
+	index = mic_index.get()
+	if not index:
+		index = "0"
+	elif not index.isnumeric():
+		notification_text.config(text="Invalid mic index (not a number)")
+		return
+
+	mic_index_option = "--mic_index=" + index
 	if gui_status == 0 and gm_status == 0:
 		if local.get() == 1:
 			print("Starting local subprocess")
-
-			process = subprocess.Popen([python_string, './game_master.py', '--local'])
+			process = subprocess.Popen([python_string, './game_master.py', '--local', mic_index_option])
 		else:
-			process = subprocess.Popen([python_string, './game_master.py'])
+			process = subprocess.Popen([python_string, './game_master.py', mic_index_option])
 		gui_status = 1
 		process_name = "Game Master Main Controller"
 
@@ -146,6 +154,7 @@ top_frame = tk.Frame(master=window, width=1000, height=500)
 button_frame = tk.Frame(master=window, width=500, height=100)
 notification_frame = tk.Frame(master=window, width=500, height=100)
 status_frame = tk.Frame(master=window, width=500, height=100)
+mic_frame = tk.Frame(master=window, width=100, height=100, bg="black")
 local_frame = tk.Frame(master=window, width=500, height=100)
 python3_frame = tk.Frame(master=window, width=500, height=100)
 
@@ -154,6 +163,12 @@ title_text = tk.Label(master=top_frame,text="WALL-U Controller Select",\
  bg="black", fg="white",padx=80,pady=30)
 notification_text = tk.Label(master=notification_frame,text="",\
  bg="black", fg="white")
+mic_index_text = tk.Label(master=mic_frame,text="Mic Index",\
+ bg="black", fg="white")
+
+# Mic Index Text Input
+mic_index = tk.StringVar()
+mic_index_entry = tk.Entry(master=mic_frame, width = 15, textvariable = mic_index)
 
 # Buttons
 wallu_button = tk.Button(
@@ -197,6 +212,9 @@ cannon_button.pack(side=tk.LEFT)
 gm_button.pack(side=tk.LEFT)
 notification_frame.pack()
 notification_text.pack()
+mic_frame.pack()
+mic_index_text.pack(side=tk.LEFT)
+mic_index_entry.pack()
 #status_frame.pack()
 #status_text.pack()
 local_frame.pack()
