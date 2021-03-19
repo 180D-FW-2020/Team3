@@ -1,7 +1,7 @@
-# Team 3
+# WALL-U: Small Robot, Big Dreams
 
 ## Objective
-The objective of the WALL-U project is to facilitate secure, non-contact payload delivery between two people with a remote controlled robot and an immersive user experience. 
+The objective of the WALL-U project is to build an immersive robot-control experience with multiple modes of operation. Currently, WALL-U supports payload delivery and multiplayer target shooting with a custom built Nerf Cannon.
 
 ## Software Organization
 ```
@@ -19,8 +19,8 @@ wallu
 
 controller
 |__main_module.py
-|__video_processing.py
-|__hud.py
+|__game_master.py
+|__cannon.py
 |__steering_wheel
    |__main_module.py
 
