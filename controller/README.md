@@ -11,6 +11,9 @@ This directory contains the Python modules that are used to control WALL-U. A br
 | `wheel/main_module.py` | Control WALL-U with IMU-based steering wheel | Yes |
 | `keyboard_controller.py` | Listen for and send keystrokes over MQTT | No |
 | `stream_utils.py` | Provide functions to generate HUD text and image overlays | No |
+| `pose_detect.py` | Provides function to check for unlock pose | No |
+| `contour_recognition.py` | Provide function to detect targets from video stream| No |
+| `voice_unlock.py` | Publishes target color | No|
 
 ## Key Decisions
 - We decided to integrate several modules (such as `keyboard_controller.py` and `voice_unlock.py`) as subprocesses in response to a strange bug that would arise when integrating them as threads instead. 
@@ -24,3 +27,5 @@ None
 
 ## Attributes
 Battery Icons made by <a href="https://www.flaticon.com/authors/freepik" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+
+## Sources
