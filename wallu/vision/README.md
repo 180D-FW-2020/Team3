@@ -12,3 +12,6 @@ None at this time
 
 ## Future Improvements
 - Add more cameras to WALL-U to make controlling him more reliable
+
+## Sources
+ImageZMQ and image quality code: https://github.com/jeffbass/imagezmq
